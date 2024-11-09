@@ -43,10 +43,7 @@ class AuthenticationService(BaseService):
 
             user_data = {
                 "email": email,
-                "password": password,
-                "security_answer1": "",
-                "security_answer2": "",
-                "security_answer3": ""
+                "password": password
             }
 
             profile_data = {

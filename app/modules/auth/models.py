@@ -13,9 +13,9 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String(256), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
-    security_answer1 = db.Column(db.String(256), nullable=False)
-    security_answer2 = db.Column(db.String(256), nullable=False)
-    security_answer3 = db.Column(db.String(256), nullable=False)
+    security_answer1 = db.Column(db.String(256))
+    security_answer2 = db.Column(db.String(256))
+    security_answer3 = db.Column(db.String(256))
 
     data_sets = db.relationship('DataSet', backref='user', lazy=True)
     profile = db.relationship('UserProfile', backref='user', uselist=False)
@@ -50,13 +50,13 @@ class User(db.Model, UserMixin):
         self.security_answer3 = generate_password_hash(answer)
 
     def check_security_answer1(self, answer):
-        return check_password_hash(self.security_answer1, answer)
+        return self.security_answer1 and check_password_hash(self.security_answer1, answer)
 
     def check_security_answer2(self, answer):
-        return check_password_hash(self.security_answer2, answer)
+        return self.security_answer2 and check_password_hash(self.security_answer2, answer)
 
     def check_security_answer3(self, answer):
-        return check_password_hash(self.security_answer3, answer)
+        return self.security_answer3 and check_password_hash(self.security_answer3, answer)
 
     def temp_folder(self) -> str:
         from app.modules.auth.services import AuthenticationService
