@@ -79,3 +79,19 @@ class AuthenticationService(BaseService):
 
     def temp_folder_by_user(self, user: User) -> str:
         return os.path.join(uploads_folder_name(), "temp", str(user.id))
+
+
+class PasswordResetService:
+    def __init__(self):
+        self.user_repository = UserRepository()
+
+    def reset_password(self, email, answer1, answer2, answer3, new_password):
+        user = self.user_repository.get_by_email(email)
+        if not user:
+            return "No user found with that email."
+
+        if not self.user_repository.check_security_answers(user, answer1, answer2, answer3):
+            return "Incorrect answers to security questions."
+
+        self.user_repository.update_password(user, new_password)
+        return "Password updated successfully."
