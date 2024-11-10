@@ -89,7 +89,7 @@
                     </div>
 
                 </div>
-
+                
                 <div class="row form-group">
 
                     <div class="col-12 mt-3">
@@ -119,7 +119,23 @@
 
         </div>
 
+
     </div>
+    <h1></h1>
+    <h1 class="h3 mb-3">Security Configuration</h1>
+    <div> 
+        <div class="row form-group mt-3">
+
+            <div class="col-12">
+                Security meausures are important to recover your password. If you have not configured it yet, please do it now.
+            </div>
+        <div class="row mt-3">
+            <div class="col-12">
+                <a href="{{ url_for('profile.edit_answers') }}" class="btn btn-secondary">Configure security answers</a>
+            </div>
+        </div>
+    </div>
+    
 
 {% endblock %}
 

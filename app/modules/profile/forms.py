@@ -16,3 +16,10 @@ class UserProfileForm(FlaskForm):
         Length(min=5, max=100)
     ])
     submit = SubmitField('Save profile')
+
+
+class UpdateAnswersForm(FlaskForm):
+    answer1 = StringField('What city were you born in?', validators=[DataRequired()])
+    answer2 = StringField('What is the name of your first teacher?', validators=[DataRequired()])
+    answer3 = StringField('What is your favorite game?', validators=[DataRequired()])
+    submit = SubmitField('Submit')

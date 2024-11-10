@@ -5,8 +5,8 @@ from flask_login import login_required, current_user
 
 from app import db
 from app.modules.profile import profile_bp
-from app.modules.profile.forms import UserProfileForm
-from app.modules.profile.services import UserProfileService
+from app.modules.profile.forms import UserProfileForm, UpdateAnswersForm
+from app.modules.profile.services import UserProfileService, AnswersUpdateService
 
 
 @profile_bp.route("/profile/edit", methods=["GET", "POST"])
@@ -53,3 +53,19 @@ def my_profile():
         pagination=user_datasets_pagination,
         total_datasets=total_datasets_count
     )
+
+
+@profile_bp.route('/profile/edit_answers', methods=['GET', 'POST'])
+@login_required
+def edit_answers():
+    profile_service = AnswersUpdateService()
+
+    form = UpdateAnswersForm()
+
+    if form.validate_on_submit():
+        result = profile_service.change_answers(current_user, form.answer1.data, form.answer2.data, form.answer3.data)
+
+        if "successfully" in result:
+            return redirect(url_for('profile.edit_profile','Security answers updated successfully'))
+
+    return render_template("profile/edit_answers.html", form=form)

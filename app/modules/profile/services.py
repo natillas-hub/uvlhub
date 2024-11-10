@@ -1,5 +1,6 @@
 from app.modules.profile.repositories import UserProfileRepository
 from core.services.BaseService import BaseService
+from app.modules.auth.repositories import UserRepository
 
 
 class UserProfileService(BaseService):
@@ -12,3 +13,12 @@ class UserProfileService(BaseService):
             return updated_instance, None
 
         return None, form.errors
+
+
+class AnswersUpdateService:
+    def __init__(self):
+        self.user_repository = UserRepository()
+
+    def change_answers(self, user, new_answer1, new_answer2, new_answer3):
+        self.user_repository.update_answers(user, new_answer1, new_answer2, new_answer3)
+        return "Security answers updated successfully."
