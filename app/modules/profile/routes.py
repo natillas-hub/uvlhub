@@ -66,6 +66,6 @@ def edit_answers():
         result = profile_service.change_answers(current_user, form.answer1.data, form.answer2.data, form.answer3.data)
 
         if "successfully" in result:
-            return redirect(url_for('profile.edit_profile','Security answers updated successfully'))
+            return redirect(url_for('profile.edit_profile'))
 
     return render_template("profile/edit_answers.html", form=form)
