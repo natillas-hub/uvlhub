@@ -57,7 +57,7 @@ def reset_password():
 
     form = PasswordResetForm()
 
-    if form.validate_on_submit():
+    if request.method == 'POST' and form.validate_on_submit():
         result = reset_password_service.reset_password(
             form.email.data,
             form.answer1.data,

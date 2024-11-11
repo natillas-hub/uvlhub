@@ -15,9 +15,9 @@ def test_client(test_client):
     Extends the test_client fixture to add additional specific data for module testing.
     """
     with test_client.application.app_context():
-        # Add HERE new elements to the database that you want to exist in the test context.
-        # DO NOT FORGET to use db.session.add(<element>) and db.session.commit() to save the data.
-        pass
+        user_test = User(email='user@example.com', password='test1234', security_answer1="answer1", security_answer2="answer2", security_answer3="answer3")
+        db.session.add(user_test)
+        db.session.commit()
     yield test_client
 
 
@@ -76,6 +76,34 @@ def test_signup_user_successful(test_client):
     )
     assert response.request.path == url_for("public.index"), "Signup was unsuccessful"
 
+    test_client.get("/logout", follow_redirects=True)
+
+
+def test_reset_password_successful(test_client):
+    response = test_client.post(
+        "/reset_password", data=dict(email="user@example.com", answer1="answer1", answer2="answer2", answer3="answer3", new_password="newpassword"), follow_redirects=True
+    )
+
+    assert response.request.path == url_for("auth.login"), "Reset password was unsuccessful"
+
+
+def test_reset_password_unsuccessful_bad_answer(test_client):
+    response = test_client.post(
+        "/reset_password", data=dict(email="user@example.com", answer1="wrong", answer2="answer2", answer3="answer3", new_password="newpassword"), follow_redirects=True
+    )
+
+    assert response.request.path != url_for("auth.login"), "Reset password was unsuccessful"
+    assert "Incorrect answers to security questions.".encode("utf-8") in response.data
+
+
+def test_reset_password_unsuccessful_bad_email(test_client):
+    response = test_client.post(
+        "/reset_password", data=dict(email="bademail@example.com", answer1="wrong", answer2="answer2", answer3="answer3", new_password="newpassword"), follow_redirects=True
+    )
+
+    assert response.request.path != url_for("auth.login"), "Reset password was unsuccessful"
+    assert "No user found with that email.".encode("utf-8") in response.data
+
 
 def test_service_create_with_profie_success(clean_database):
     data = {
@@ -121,7 +149,7 @@ def test_service_create_with_profile_fail_no_password(clean_database):
     assert UserProfileRepository().count() == 0
 
 
-def test_password_reset_success(test_client, clean_database):
+def test_service_password_reset_success(clean_database):
     user_data = {
         "email": "user@example.com",
         "password": "oldpassword",
@@ -134,32 +162,20 @@ def test_password_reset_success(test_client, clean_database):
     db.session.commit()
 
     service = PasswordResetService()
-    result = service.reset_password(
-        email="user@example.com",
-        answer1="answer1",
-        answer2="answer2",
-        answer3="answer3",
-        new_password="newpassword"
-    )
+    result = service.reset_password("user@example.com", "answer1", "answer2", "answer3", "newpassword")
     assert result == "Password updated successfully."
     updated_user = UserRepository().get_by_email("user@example.com")
     assert updated_user.check_password("newpassword")
 
 
-def test_password_reset_no_user(test_client, clean_database):
+def test_service_reset_password_bad_email(clean_database):
     service = PasswordResetService()
-    result = service.reset_password(
-        email="Idonoexist@example.com",
-        answer1="answer1",
-        answer2="answer2",
-        answer3="answer3",
-        new_password="newpassword"
-    )
+    result = service.reset_password("bademail@example.com", "answer1", "answer2", "answer3", "newpassword")
 
     assert result == "No user found with that email."
 
 
-def test_password_reset_incorrect_answers(test_client, clean_database):
+def test_service_reset_password_incorrect_answers(clean_database):
     user_data = {
         "email": "user@example.com",
         "password": "oldpassword",
@@ -172,40 +188,25 @@ def test_password_reset_incorrect_answers(test_client, clean_database):
     db.session.commit()
 
     service = PasswordResetService()
-    result = service.reset_password(
-        email="user@example.com",
-        answer1="wronganswer1",
-        answer2="wronganswer2",
-        answer3="wronganswer3",
-        new_password="newpassword"
-    )
+    result = service.reset_password("user@example.com", "wronganswer1", "wronganswer2", "wronganswer3", "newpassword")
 
     assert result == "Incorrect answers to security questions."
     updated_user = UserRepository().get_by_email("user@example.com")
-    assert not updated_user.check_password("newpassword")
+    assert updated_user.check_password("oldpassword")
 
 
-def test_password_reset_missing_answers(test_client, clean_database):
+def test_service_reset_password_not_configured_security(clean_database):
     user_data = {
         "email": "user@example.com",
-        "password": "oldpassword",
-        "security_answer1": "answer1",
-        "security_answer2": "answer2",
-        "security_answer3": "answer3"
+        "password": "oldpassword"
     }
     user = User(**user_data)
     db.session.add(user)
     db.session.commit()
 
     service = PasswordResetService()
-    result = service.reset_password(
-        email="user@example.com",
-        answer1="answer1",
-        answer2="",
-        answer3="answer3",
-        new_password="newpassword"
-    )
+    result = service.reset_password("user@example.com", "wronganswer1", "wronganswer2", "wronganswer3", "newpassword")
 
     assert result == "Incorrect answers to security questions."
     updated_user = UserRepository().get_by_email("user@example.com")
-    assert not updated_user.check_password("newpassword")
+    assert updated_user.check_password("oldpassword")

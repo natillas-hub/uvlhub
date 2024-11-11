@@ -62,7 +62,7 @@ def edit_answers():
 
     form = UpdateAnswersForm()
 
-    if form.validate_on_submit():
+    if request.method == 'POST' and form.validate_on_submit():
         result = profile_service.change_answers(current_user, form.answer1.data, form.answer2.data, form.answer3.data)
 
         if "successfully" in result:
