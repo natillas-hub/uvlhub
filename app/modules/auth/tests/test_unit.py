@@ -15,7 +15,12 @@ def test_client(test_client):
     Extends the test_client fixture to add additional specific data for module testing.
     """
     with test_client.application.app_context():
-        user_test = User(email='user@example.com', password='test1234', security_answer1="answer1", security_answer2="answer2", security_answer3="answer3")
+        user_test = User(
+            email='user@example.com',
+            password='test1234',
+            security_answer1="answer1",
+            security_answer2="answer2",
+            security_answer3="answer3")
         db.session.add(user_test)
         db.session.commit()
     yield test_client
@@ -81,7 +86,14 @@ def test_signup_user_successful(test_client):
 
 def test_reset_password_successful(test_client):
     response = test_client.post(
-        "/reset_password", data=dict(email="user@example.com", answer1="answer1", answer2="answer2", answer3="answer3", new_password="newpassword"), follow_redirects=True
+        "/reset_password",
+        data=dict(
+            email="user@example.com",
+            answer1="answer1",
+            answer2="answer2",
+            answer3="answer3",
+            new_password="newpassword"),
+        follow_redirects=True
     )
 
     assert response.request.path == url_for("auth.login"), "Reset password was unsuccessful"
@@ -89,7 +101,14 @@ def test_reset_password_successful(test_client):
 
 def test_reset_password_unsuccessful_bad_answer(test_client):
     response = test_client.post(
-        "/reset_password", data=dict(email="user@example.com", answer1="wrong", answer2="answer2", answer3="answer3", new_password="newpassword"), follow_redirects=True
+        "/reset_password",
+        data=dict(
+            email="user@example.com",
+            answer1="wrong",
+            answer2="answer2",
+            answer3="answer3",
+            new_password="newpassword"),
+        follow_redirects=True
     )
 
     assert response.request.path != url_for("auth.login"), "Reset password was unsuccessful"
@@ -98,7 +117,14 @@ def test_reset_password_unsuccessful_bad_answer(test_client):
 
 def test_reset_password_unsuccessful_bad_email(test_client):
     response = test_client.post(
-        "/reset_password", data=dict(email="bademail@example.com", answer1="wrong", answer2="answer2", answer3="answer3", new_password="newpassword"), follow_redirects=True
+        "/reset_password",
+        data=dict(
+            email="bademail@example.com",
+            answer1="wrong",
+            answer2="answer2",
+            answer3="answer3",
+            new_password="newpassword"),
+        follow_redirects=True
     )
 
     assert response.request.path != url_for("auth.login"), "Reset password was unsuccessful"

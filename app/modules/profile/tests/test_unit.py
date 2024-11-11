@@ -58,7 +58,13 @@ def test_answers_update_page_post_succesful(test_client):
     login_response = login(test_client, "user@example.com", "test1234")
     assert login_response.status_code == 200, "Login was unsuccessful."
 
-    response = test_client.post("/profile/edit_answers", data=dict(answer1="answer1", answer2="answer2", answer3="answer3"), follow_redirects=True)
+    response = test_client.post(
+        "/profile/edit_answers",
+        data=dict(
+            answer1="answer1",
+            answer2="answer2",
+            answer3="answer3"),
+        follow_redirects=True)
     assert response.status_code == 200, "The answers could not be changed."
     assert response.request.path == url_for("profile.edit_profile"), "Reset password was unsuccessful"
 
