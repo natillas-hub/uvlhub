@@ -2,13 +2,14 @@ from flask import render_template, redirect, url_for, request
 from flask_login import current_user, login_user, logout_user
 
 from app.modules.auth import auth_bp
-from app.modules.auth.forms import SignupForm, LoginForm
-from app.modules.auth.services import AuthenticationService
+from app.modules.auth.forms import SignupForm, LoginForm, PasswordResetForm
+from app.modules.auth.services import AuthenticationService, PasswordResetService
 from app.modules.profile.services import UserProfileService
 
 
 authentication_service = AuthenticationService()
 user_profile_service = UserProfileService()
+reset_password_service = PasswordResetService()
 
 
 @auth_bp.route("/signup/", methods=["GET", "POST"])
@@ -47,6 +48,30 @@ def login():
         return render_template("auth/login_form.html", form=form, error='Invalid credentials')
 
     return render_template('auth/login_form.html', form=form)
+
+
+@auth_bp.route('/reset_password', methods=['GET', 'POST'])
+def reset_password():
+    if current_user.is_authenticated:
+        return redirect(url_for('public.index'))
+
+    form = PasswordResetForm()
+
+    if request.method == 'POST' and form.validate_on_submit():
+        result = reset_password_service.reset_password(
+            form.email.data,
+            form.answer1.data,
+            form.answer2.data,
+            form.answer3.data,
+            form.new_password.data
+        )
+
+        if "successfully" in result:
+            return redirect(url_for('auth.login'))
+
+        return render_template("auth/reset_password_form.html", form=form, error=result)
+
+    return render_template("auth/reset_password_form.html", form=form)
 
 
 @auth_bp.route('/logout')

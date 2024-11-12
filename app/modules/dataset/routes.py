@@ -7,6 +7,10 @@ import uuid
 from datetime import datetime, timezone
 from zipfile import ZipFile
 
+from app.modules.hubfile.services import HubfileService
+from flamapy.metamodels.fm_metamodel.transformations import UVLReader, GlencoeWriter, SPLOTWriter
+from flamapy.metamodels.pysat_metamodel.transformations import FmToPysat, DimacsWriter
+
 from flask import (
     redirect,
     render_template,
@@ -241,6 +245,94 @@ def download_dataset(dataset_id):
     return resp
 
 
+@dataset_bp.route("/dataset/download/<int:dataset_id>/<string:format>", methods=["GET"])
+def download_dataset_format(dataset_id, format):
+    valid_formats = ["DIMACS", "GLENCOE", "SPLOT", "UVL"]
+
+    if format not in valid_formats:
+        response = jsonify({"error": "Formato de descarga no soportado"})
+        response.status_code = 400
+        return response
+
+    dataset = dataset_service.get_or_404(dataset_id)
+
+    file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
+    temp_dir = tempfile.mkdtemp()
+    zip_path = os.path.join(temp_dir, f"dataset_{dataset_id}.zip")
+
+    with ZipFile(zip_path, "w") as zipf:
+        for subdir, dirs, files in os.walk(file_path):
+            for file in dataset.files():
+                full_path = os.path.join(subdir, file.name)
+
+                with open(full_path, "r") as file_content:
+                    content = file_content.read()
+
+                if format == "DIMACS":
+                    transformed_file_path, original_filename = transform_to_dimacs(file.id)
+                    with open(transformed_file_path, "r") as transformed_file:
+                        content = transformed_file.read()
+                    new_filename = f"{original_filename}_cnf.txt"
+
+                elif format == "GLENCOE":
+                    transformed_file_path, original_filename = transform_to_glencoe(file.id)
+                    with open(transformed_file_path, "r") as transformed_file:
+                        content = transformed_file.read()
+                    new_filename = f"{original_filename}_glencoe.txt"
+
+                elif format == "SPLOT":
+                    transformed_file_path, original_filename = transform_to_splot(file.id)
+                    with open(transformed_file_path, "r") as transformed_file:
+                        content = transformed_file.read()
+                    new_filename = f"{original_filename}_splot.txt"
+                elif format == "UVL":
+                    new_filename = f"{file.name}"
+
+                with zipf.open(new_filename, "w") as zipfile:
+                    zipfile.write(content.encode())
+
+    user_cookie = request.cookies.get("download_cookie")
+    if not user_cookie:
+        user_cookie = str(
+            uuid.uuid4()
+        )  # Generate a new unique identifier if it does not exist
+        # Save the cookie to the user's browser
+        resp = make_response(
+            send_from_directory(
+                temp_dir,
+                f"dataset_{dataset_id}.zip",
+                as_attachment=True,
+                mimetype="application/zip",
+            )
+        )
+        resp.set_cookie("download_cookie", user_cookie)
+    else:
+        resp = send_from_directory(
+            temp_dir,
+            f"dataset_{dataset_id}.zip",
+            as_attachment=True,
+            mimetype="application/zip",
+        )
+
+    # Check if the download record already exists for this cookie
+    existing_record = DSDownloadRecord.query.filter_by(
+        user_id=current_user.id if current_user.is_authenticated else None,
+        dataset_id=dataset_id,
+        download_cookie=user_cookie
+    ).first()
+
+    if not existing_record:
+        # Record the download in your database
+        DSDownloadRecordService().create(
+            user_id=current_user.id if current_user.is_authenticated else None,
+            dataset_id=dataset_id,
+            download_date=datetime.now(timezone.utc),
+            download_cookie=user_cookie,
+        )
+
+    return resp
+
+
 @dataset_bp.route("/doi/<path:doi>/", methods=["GET"])
 def subdomain_index(doi):
 
@@ -278,3 +370,42 @@ def get_unsynchronized_dataset(dataset_id):
         abort(404)
 
     return render_template("dataset/view_dataset.html", dataset=dataset)
+
+
+def transform_to_dimacs(file_id):
+    temp_file = tempfile.NamedTemporaryFile(suffix='.dimacs', delete=False)
+    try:
+        hubfile = HubfileService().get_by_id(file_id)
+        fm = UVLReader(hubfile.get_path()).transform()
+        sat = FmToPysat(fm).transform()
+        DimacsWriter(temp_file.name, sat).transform()
+
+        return temp_file.name, hubfile.name
+    finally:
+        pass
+
+
+def transform_to_splot(file_id):
+    temp_file = tempfile.NamedTemporaryFile(suffix='.splot', delete=False)
+    try:
+        hubfile = HubfileService().get_by_id(file_id)
+        fm = UVLReader(hubfile.get_path()).transform()
+
+        SPLOTWriter(temp_file.name, fm).transform()
+
+        return temp_file.name, hubfile.name
+    finally:
+        pass
+
+
+def transform_to_glencoe(file_id):
+    temp_file = tempfile.NamedTemporaryFile(suffix='.glencoe', delete=False)
+    try:
+        hubfile = HubfileService().get_by_id(file_id)
+        fm = UVLReader(hubfile.get_path()).transform()
+
+        GlencoeWriter(temp_file.name, fm).transform()
+
+        return temp_file.name, hubfile.name
+    finally:
+        pass
