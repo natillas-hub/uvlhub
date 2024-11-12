@@ -247,6 +247,13 @@ def download_dataset(dataset_id):
 
 @dataset_bp.route("/dataset/download/<int:dataset_id>/<string:format>", methods=["GET"])
 def download_dataset_format(dataset_id, format):
+    valid_formats = ["DIMACS", "GLENCOE", "SPLOT", "UVL"]
+
+    if format not in valid_formats:
+        response = jsonify({"error": "Formato de descarga no soportado"})
+        response.status_code = 400
+        return response
+        
     dataset = dataset_service.get_or_404(dataset_id)
 
     file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
@@ -261,8 +268,6 @@ def download_dataset_format(dataset_id, format):
 
                 with open(full_path, "r") as file_content:
                     content = file_content.read()
-
-                new_filename = f"{file.name}"
 
                 if format == "DIMACS":
                     transformed_file_path, original_filename = transform_to_dimacs(file.id)
@@ -281,7 +286,9 @@ def download_dataset_format(dataset_id, format):
                     with open(transformed_file_path, "r") as transformed_file:
                         content = transformed_file.read()
                     new_filename = f"{original_filename}_splot.txt"
-                
+                elif format == "UVL":
+                    new_filename = f"{file.name}"
+
                 with zipf.open(new_filename, "w") as zipfile:
                     zipfile.write(content.encode())  
         
