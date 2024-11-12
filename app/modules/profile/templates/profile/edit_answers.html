@@ -1,0 +1,51 @@
+{% extends "base_template.html" %}
+
+{% block title %}Security answers{% endblock %}
+
+{% block content %}
+<h1 class="h2 mb-3"><b>Establish your Security Answers</b></h1>
+
+<form method="POST">
+    {{ form.hidden_tag() }}
+
+    <!-- Answer to question 1 -->
+    <div class="mb-3">
+        <label for="answer1" class="form-label">What city were you born in?</label>
+        {{ form.answer1(class="form-control", placeholder="Enter your answer") }}
+        {% for error in form.answer1.errors %}
+            <span style="color: red;">{{ error }}</span>
+        {% endfor %}
+    </div>
+
+    <!-- Answer to question 2 -->
+    <div class="mb-3">
+        <label for="answer2" class="form-label">What is the name of your first teacher?</label>
+        {{ form.answer2(class="form-control", placeholder="Enter your answer") }}
+        {% for error in form.answer2.errors %}
+            <span style="color: red;">{{ error }}</span>
+        {% endfor %}
+    </div>
+
+    <!-- Answer to question 3 -->
+    <div class="mb-3">
+        <label for="answer3" class="form-label">What is your favorite game?</label>
+        {{ form.answer3(class="form-control", placeholder="Enter your answer") }}
+        {% for error in form.answer3.errors %}
+            <span style="color: red;">{{ error }}</span>
+        {% endfor %}
+    </div>
+
+    <!-- Submit button -->
+    <div class="mb-3">
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </div>
+
+    <!-- Error message -->
+    {% if error %}
+    <div class="alert alert-danger">
+        {{ error }}
+    </div>
+    {% endif %}
+</form>
+
+{% endblock %}
