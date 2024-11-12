@@ -1,7 +1,6 @@
 import pytest
 
 from app import db
-from app.modules.auth.models import User
 from app.modules.dataset.models import DataSet, DSMetrics, DSMetaData, PublicationType
 from app.modules.featuremodel.models import FeatureModel
 from app.modules.hubfile.models import Hubfile
@@ -18,7 +17,6 @@ def test_client(test_client):
             number_of_models="5",
             number_of_features="20"
         )
-        
         ds_meta_data_test = DSMetaData(
             deposition_id=123456,
             title="Test Dataset Title",
@@ -66,6 +64,7 @@ def test_client(test_client):
 
     yield test_client
 
+
 def test_download_dataset_succesful(test_client):
     response = test_client.get("/dataset/download/1/UVL")
     assert response.status_code == 200
@@ -76,11 +75,13 @@ def test_download_dataset_succesful(test_client):
     response = test_client.get("/dataset/download/1/GLENCOE")
     assert response.status_code == 200
 
+
 def test_download_dataset_wrong_format(test_client):
     response = test_client.get("/dataset/download/1/WRONG")
     assert response.status_code == 400
     assert response.json == {"error": "Formato de descarga no soportado"}
-    
+
+
 def test_download_dataset_no_dataset(test_client):
     response = test_client.get("/dataset/download/3/UVL")
     assert response.status_code == 404

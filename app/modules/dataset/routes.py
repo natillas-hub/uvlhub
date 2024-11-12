@@ -7,7 +7,6 @@ import uuid
 from datetime import datetime, timezone
 from zipfile import ZipFile
 
-from app.modules.hubfile.repositories import HubfileRepository
 from app.modules.hubfile.services import HubfileService
 from flamapy.metamodels.fm_metamodel.transformations import UVLReader, GlencoeWriter, SPLOTWriter
 from flamapy.metamodels.pysat_metamodel.transformations import FmToPysat, DimacsWriter
@@ -245,6 +244,7 @@ def download_dataset(dataset_id):
 
     return resp
 
+
 @dataset_bp.route("/dataset/download/<int:dataset_id>/<string:format>", methods=["GET"])
 def download_dataset_format(dataset_id, format):
     valid_formats = ["DIMACS", "GLENCOE", "SPLOT", "UVL"]
@@ -253,11 +253,10 @@ def download_dataset_format(dataset_id, format):
         response = jsonify({"error": "Formato de descarga no soportado"})
         response.status_code = 400
         return response
-        
+
     dataset = dataset_service.get_or_404(dataset_id)
 
     file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
-    
     temp_dir = tempfile.mkdtemp()
     zip_path = os.path.join(temp_dir, f"dataset_{dataset_id}.zip")
 
@@ -290,8 +289,8 @@ def download_dataset_format(dataset_id, format):
                     new_filename = f"{file.name}"
 
                 with zipf.open(new_filename, "w") as zipfile:
-                    zipfile.write(content.encode())  
-        
+                    zipfile.write(content.encode())
+
     user_cookie = request.cookies.get("download_cookie")
     if not user_cookie:
         user_cookie = str(
@@ -333,6 +332,7 @@ def download_dataset_format(dataset_id, format):
 
     return resp
 
+
 @dataset_bp.route("/doi/<path:doi>/", methods=["GET"])
 def subdomain_index(doi):
 
@@ -371,6 +371,7 @@ def get_unsynchronized_dataset(dataset_id):
 
     return render_template("dataset/view_dataset.html", dataset=dataset)
 
+
 def transform_to_dimacs(file_id):
     temp_file = tempfile.NamedTemporaryFile(suffix='.dimacs', delete=False)
     try:
@@ -383,6 +384,7 @@ def transform_to_dimacs(file_id):
     finally:
         pass
 
+
 def transform_to_splot(file_id):
     temp_file = tempfile.NamedTemporaryFile(suffix='.splot', delete=False)
     try:
@@ -394,6 +396,7 @@ def transform_to_splot(file_id):
         return temp_file.name, hubfile.name
     finally:
         pass
+
 
 def transform_to_glencoe(file_id):
     temp_file = tempfile.NamedTemporaryFile(suffix='.glencoe', delete=False)
