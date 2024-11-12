@@ -111,10 +111,12 @@ def create_dataset():
 @dataset_bp.route("/dataset/list", methods=["GET", "POST"])
 @login_required
 def list_dataset():
+    total_size_kb = sum(dataset.file_size for dataset in datasets)
     return render_template(
         "dataset/list_datasets.html",
         datasets=dataset_service.get_synchronized(current_user.id),
         local_datasets=dataset_service.get_unsynchronized(current_user.id),
+        total_size_kb = sum(dataset.file_size for dataset in datasets),
     )
 
 
@@ -278,3 +280,38 @@ def get_unsynchronized_dataset(dataset_id):
         abort(404)
 
     return render_template("dataset/view_dataset.html", dataset=dataset)
+
+@dataset_bp.route("/dataset/download_all", methods=["GET"])
+@login_required
+def download_all():
+    # Crear un directorio temporal para almacenar el archivo ZIP
+    temp_dir = tempfile.mkdtemp()
+    zip_path = os.path.join(temp_dir, "all_datasets.zip")
+
+    # Crear el archivo ZIP
+    with ZipFile(zip_path, "w") as zipf:
+        # Obtener todos los datasets asociados al usuario actual
+        datasets = dataset_service.get_synchronized(current_user.id)
+
+        for dataset in datasets:
+            # Definir la ruta de archivos del dataset
+            file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
+            
+            # Comprimir todos los archivos de cada dataset
+            for subdir, dirs, files in os.walk(file_path):
+                for file in files:
+                    full_path = os.path.join(subdir, file)
+                    relative_path = os.path.relpath(full_path, file_path)
+                    zipf.write(
+                        full_path,
+                        arcname=os.path.join(f"dataset_{dataset.id}", relative_path),
+                    )
+
+    # Enviar el archivo ZIP como respuesta
+    return send_from_directory(
+        temp_dir,
+        "all_datasets.zip",
+        as_attachment=True,
+        mimetype="application/zip"
+    )
+
