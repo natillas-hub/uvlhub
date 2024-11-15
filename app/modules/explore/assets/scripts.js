@@ -21,6 +21,10 @@ function send_query() {
                 query: document.querySelector('#query').value,
                 publication_type: document.querySelector('#publication_type').value,
                 sorting: document.querySelector('[name="sorting"]:checked').value,
+                min_features: document.querySelector('#min_features').value || null,
+                max_features: document.querySelector('#max_features').value || null,
+                min_products: document.querySelector('#min_products').value || null,
+                max_products: document.querySelector('#max_products').value || null
             };
 
             console.log(document.querySelector('#publication_type').value);
@@ -140,11 +144,6 @@ function formatDate(dateString) {
     return date.toLocaleString('en-US', options);
 }
 
-function set_tag_as_query(tagName) {
-    const queryInput = document.getElementById('query');
-    queryInput.value = tagName.trim();
-    queryInput.dispatchEvent(new Event('input', {bubbles: true}));
-}
 
 function set_publication_type_as_query(publicationType) {
     const publicationTypeSelect = document.getElementById('publication_type');
@@ -179,7 +178,13 @@ function clearFilters() {
         // option.dispatchEvent(new Event('input', {bubbles: true}));
     });
 
-    // Perform a new search with the reset filters
+    // Limpiar los nuevos campos
+    document.querySelector('#min_features').value = "";
+    document.querySelector('#max_features').value = "";
+    document.querySelector('#min_products').value = "";
+    document.querySelector('#max_products').value = "";
+    
+    // Realizar la búsqueda con los filtros reseteados
     queryInput.dispatchEvent(new Event('input', {bubbles: true}));
 }
 
@@ -203,3 +208,16 @@ document.addEventListener('DOMContentLoaded', () => {
         queryInput.dispatchEvent(new Event('input', {bubbles: true}));
     }
 });
+
+function getFilters() {
+    const filters = {
+        query: document.getElementById('query').value,
+        sorting: document.querySelector('input[name="sorting"]:checked').value,
+        publication_type: document.getElementById('publication_type').value,
+        min_features: document.getElementById('min_features').value,
+        max_features: document.getElementById('max_features').value,
+        min_products: document.getElementById('min_products').value,
+        max_products: document.getElementById('max_products').value,
+    };
+    return filters;
+}

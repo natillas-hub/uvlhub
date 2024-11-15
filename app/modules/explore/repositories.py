@@ -10,7 +10,7 @@ class ExploreRepository(BaseRepository):
     def __init__(self):
         super().__init__(DataSet)
 
-    def filter(self, query="", sorting="newest", publication_type="any", tags=[], **kwargs):
+    def filter(self, query="", sorting="newest", publication_type="any", **kwargs):
         # Normalize and remove unwanted characters
         normalized_query = unidecode.unidecode(query).lower()
         cleaned_query = re.sub(r'[,.":\'()\[\]^;!¡¿?]', "", normalized_query)
@@ -49,12 +49,9 @@ class ExploreRepository(BaseRepository):
             if matching_type is not None:
                 datasets = datasets.filter(DSMetaData.publication_type == matching_type.name)
 
-        if tags:
-            datasets = datasets.filter(DSMetaData.tags.ilike(any_(f"%{tag}%" for tag in tags)))
-
         # Order by created_at
         if sorting == "oldest":
-            datasets = datasets.order_by(self.model.created_at.asc())
+            datasets = datasets.order_by(self.model.created_at.asc())   
         else:
             datasets = datasets.order_by(self.model.created_at.desc())
 
