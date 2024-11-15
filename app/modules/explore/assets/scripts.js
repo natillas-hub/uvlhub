@@ -144,6 +144,11 @@ function formatDate(dateString) {
     return date.toLocaleString('en-US', options);
 }
 
+function set_tag_as_query(tagName) {
+    const queryInput = document.getElementById('query');
+    queryInput.value = tagName.trim();
+    queryInput.dispatchEvent(new Event('input', {bubbles: true}));
+}
 
 function set_publication_type_as_query(publicationType) {
     const publicationTypeSelect = document.getElementById('publication_type');
