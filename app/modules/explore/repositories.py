@@ -52,7 +52,7 @@ class ExploreRepository(BaseRepository):
 
         if publication_type != "any":
             matching_type = next(
-                (member for member in PublicationType if member.value.lower() == publication_type), 
+                (member for member in PublicationType if member.value.lower() == publication_type),
                 None
             )
             if matching_type:

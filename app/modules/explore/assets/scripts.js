@@ -213,16 +213,3 @@ document.addEventListener('DOMContentLoaded', () => {
         queryInput.dispatchEvent(new Event('input', {bubbles: true}));
     }
 });
-
-function getFilters() {
-    const filters = {
-        query: document.getElementById('query').value,
-        sorting: document.querySelector('input[name="sorting"]:checked').value,
-        publication_type: document.getElementById('publication_type').value,
-        min_features: document.getElementById('min_features').value,
-        max_features: document.getElementById('max_features').value,
-        min_products: document.getElementById('min_products').value,
-        max_products: document.getElementById('max_products').value,
-    };
-    return filters;
-}

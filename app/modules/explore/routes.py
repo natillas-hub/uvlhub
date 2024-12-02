@@ -28,5 +28,5 @@ def index():
             except ValueError as e:
                 return jsonify({'error': str(e)}), 400
 
-        except Exception as e:
+        except Exception:
             return jsonify({'error': 'Invalid request'}), 400
