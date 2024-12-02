@@ -4,8 +4,7 @@ from app import db
 from app.modules.dataset.models import DataSet, DSMetrics, DSMetaData, PublicationType
 from app.modules.featuremodel.models import FeatureModel
 from app.modules.hubfile.models import Hubfile
-from app.modules.dataset.services import DataSetService 
-
+from app.modules.dataset.services import DataSetService
 
 
 @pytest.fixture(scope="module")
@@ -88,6 +87,7 @@ def test_download_dataset_no_dataset(test_client):
     response = test_client.get("/dataset/download/3/UVL")
     assert response.status_code == 404
 
+
 # Tests unitarios para la feature 2
 def test_user_datasets_single_user(test_client):
     """
@@ -138,4 +138,3 @@ def test_user_datasets_invalid_user_id(test_client):
 
     datasets = dataset_service.get_datasets_by_user(user_id)
     assert len(datasets) == 0
-
