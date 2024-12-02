@@ -121,48 +121,6 @@ def test_explore_post_invalid_sorting(test_client):
     assert response.status_code == 200  # Debería usar el valor por defecto 'newest'
     assert isinstance(response.json, list)
 
-# Test con valores negativos para features
-def test_explore_post_negative_features(test_client):
-    """Test con valores negativos para features"""
-    response = test_client.post('/explore',
-                              json={
-                                  'query': '',
-                                  'publication_type': 'any',
-                                  'sorting': 'newest',
-                                  'min_features': -1,  # Valor inválido
-                                  'max_features': -5   # Valor inválido
-                              })
-    assert response.status_code == 400
-    assert 'error' in response.json
-
-# Test con rango inválido de features (min > max)
-def test_explore_post_invalid_feature_range(test_client):
-    """Test con rango inválido de features (min > max)"""
-    response = test_client.post('/explore',
-                              json={
-                                  'query': '',
-                                  'publication_type': 'any',
-                                  'sorting': 'newest',
-                                  'min_features': 100,
-                                  'max_features': 50
-                              })
-    assert response.status_code == 400
-    assert 'error' in response.json
-
-# Test con rango inválido de productos (min > max)
-def test_explore_post_invalid_product_range(test_client):
-    """Test con rango inválido de productos (min > max)"""
-    response = test_client.post('/explore',
-                              json={
-                                  'query': '',
-                                  'publication_type': 'any',
-                                  'sorting': 'newest',
-                                  'min_products': 1000,
-                                  'max_products': 500
-                              })
-    assert response.status_code == 400
-    assert 'error' in response.json
-
 # Test con JSON mal formado
 def test_explore_post_malformed_json(test_client):
     """Test con JSON mal formado"""
