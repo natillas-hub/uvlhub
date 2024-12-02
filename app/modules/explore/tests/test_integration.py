@@ -4,6 +4,7 @@ from app.modules.dataset.models import DataSet, DSMetrics, DSMetaData, Publicati
 from app.modules.featuremodel.models import FeatureModel, FMMetaData
 from datetime import datetime, timezone
 
+
 @pytest.fixture(scope="module")
 def test_client(test_client):
     """Fixture que prepara datos de prueba para integración"""
@@ -21,7 +22,7 @@ def test_client(test_client):
             number_of_models="5",
             number_of_features="20"
         )
-        
+
         ds_meta_data = DSMetaData(
             deposition_id=123456,
             title="Test Integration Dataset",
@@ -33,7 +34,7 @@ def test_client(test_client):
             ds_metrics=ds_metrics,
             authors=[author]
         )
-        
+
         dataset = DataSet(
             user_id=1,
             ds_meta_data=ds_meta_data,
@@ -51,7 +52,7 @@ def test_client(test_client):
             tags="test, features",
             uvl_version="1.0"
         )
-        
+
         feature_model = FeatureModel(
             data_set=dataset,
             fm_meta_data=fm_meta_data
@@ -67,31 +68,34 @@ def test_client(test_client):
 
     yield test_client
 
+
 def test_explore_integration_full_search(test_client):
     """Test integración de búsqueda completa"""
-    response = test_client.post('/explore',
-                              json={
-                                  'query': 'Test Integration',
-                                  'publication_type': 'article',
-                                  'sorting': 'newest',
-                                  'min_features': 10,
-                                  'max_features': 30
-                              })
+    response = test_client.post(
+        '/explore',
+        json={
+            'query': 'Test Integration',
+            'publication_type': 'article',
+            'sorting': 'newest',
+            'min_features': 10,
+            'max_features': 30
+        })
     assert response.status_code == 200
     data = response.json
     assert len(data) > 0
     assert 'Test Integration Dataset' in data[0]['title']
 
+
 def test_explore_integration_author_search(test_client):
     """Test integración de búsqueda por autor"""
-    response = test_client.post('/explore',
-                              json={
-                                  'query': 'Test Author',
-                                  'publication_type': 'any',
-                                  'sorting': 'newest'
-                              })
+    response = test_client.post(
+        '/explore',
+        json={
+            'query': 'Test Author',
+            'publication_type': 'any',
+            'sorting': 'newest'
+        })
     assert response.status_code == 200
     data = response.json
     assert len(data) > 0
     assert any('Test Author' in str(dataset['authors']) for dataset in data)
-

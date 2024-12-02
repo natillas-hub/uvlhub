@@ -1,5 +1,5 @@
 import re
-from sqlalchemy import any_, or_, Integer
+from sqlalchemy import any_, or_
 import unidecode
 from app.modules.dataset.models import Author, DSMetrics, DSMetaData, DataSet, PublicationType
 from app.modules.featuremodel.models import FMMetaData, FeatureModel
@@ -14,7 +14,10 @@ class ExploreRepository(BaseRepository):
     def __init__(self):
         super().__init__(DataSet)
 
-    def filter(self, query="", sorting="newest", publication_type="any", tags=[], min_features=None, max_features=None, min_products=None, max_products=None, **kwargs):
+    def filter(
+            self, query="", sorting="newest", publication_type="any",
+            tags=[], min_features=None, max_features=None,
+            min_products=None, max_products=None, **kwargs):
         # Normalize and remove unwanted characters
         normalized_query = unidecode.unidecode(query).lower()
         cleaned_query = re.sub(r'[,.":\'()\[\]^;!¡¿?]', "", normalized_query)
@@ -60,7 +63,7 @@ class ExploreRepository(BaseRepository):
             datasets = datasets.filter(
                 db.cast(db.func.nullif(DSMetrics.number_of_features, ''), db.String).cast(db.Integer) >= min_features
             )
-        
+
         if max_features is not None:
             datasets = datasets.filter(
                 db.cast(db.func.nullif(DSMetrics.number_of_features, ''), db.String).cast(db.Integer) <= max_features
@@ -71,7 +74,7 @@ class ExploreRepository(BaseRepository):
             datasets = datasets.filter(
                 db.cast(db.func.nullif(DSMetrics.number_of_models, ''), db.String).cast(db.Integer) >= min_products
             )
-        
+
         if max_products is not None:
             datasets = datasets.filter(
                 db.cast(db.func.nullif(DSMetrics.number_of_models, ''), db.String).cast(db.Integer) <= max_products
@@ -82,5 +85,5 @@ class ExploreRepository(BaseRepository):
             datasets = datasets.order_by(self.model.created_at.asc())
         else:
             datasets = datasets.order_by(self.model.created_at.desc())
-      
+
         return datasets.distinct().all()
