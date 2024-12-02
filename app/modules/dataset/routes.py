@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from zipfile import ZipFile
 
 from app.modules.hubfile.services import HubfileService
+from app.modules.auth.models import User
 from flamapy.metamodels.fm_metamodel.transformations import UVLReader, GlencoeWriter, SPLOTWriter
 from flamapy.metamodels.pysat_metamodel.transformations import FmToPysat, DimacsWriter
 
@@ -409,3 +410,10 @@ def transform_to_glencoe(file_id):
         return temp_file.name, hubfile.name
     finally:
         pass
+
+
+@dataset_bp.route("/dataset/user/<int:user_id>")  # Method get?
+def user_datasets(user_id):
+    user = User.query.get_or_404(user_id)
+    datasets = dataset_service.get_datasets_by_user(user_id)
+    return render_template('dataset/user_datasets.html', user=user, datasets=datasets)
