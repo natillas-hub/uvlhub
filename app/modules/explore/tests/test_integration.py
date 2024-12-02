@@ -95,30 +95,3 @@ def test_explore_integration_author_search(test_client):
     assert len(data) > 0
     assert any('Test Author' in str(dataset['authors']) for dataset in data)
 
-# Necesita Fix para cuando este el feature model
-'''
-def test_explore_integration_doi_search(test_client):
-    """Test integración de búsqueda por DOI"""
-    response = test_client.post('/explore',
-                              json={
-                                  'query': '10.1234/test.integration',
-                                  'publication_type': 'any',
-                                  'sorting': 'newest'
-                              })
-    assert response.status_code == 200
-    data = response.json
-    assert len(data) > 0, "No se encontraron resultados para el DOI"
-    assert data[0]['publication_doi'] == '10.1234/test.integration'
-
-def test_explore_integration_feature_model_search(test_client):
-    """Test integración de búsqueda por feature model"""
-    response = test_client.post('/explore',
-                              json={
-                                  'query': 'test_model.uvl',
-                                  'publication_type': 'any',
-                                  'sorting': 'newest'
-                              })
-    assert response.status_code == 200
-    data = response.json
-    assert len(data) > 0, "No se encontraron resultados para el feature model"
-    assert any('test_model.uvl' in str(dataset['feature_models']) for dataset in data) '''

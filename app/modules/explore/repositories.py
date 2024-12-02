@@ -5,6 +5,9 @@ from app.modules.dataset.models import Author, DSMetrics, DSMetaData, DataSet, P
 from app.modules.featuremodel.models import FMMetaData, FeatureModel
 from core.repositories.BaseRepository import BaseRepository
 from app import db
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ExploreRepository(BaseRepository):
@@ -52,19 +55,32 @@ class ExploreRepository(BaseRepository):
             if matching_type:
                 datasets = datasets.filter(DSMetaData.publication_type == matching_type.name)
 
+        # Aplicar filtros de features
         if min_features is not None:
-            datasets = datasets.filter(db.cast(DSMetrics.number_of_features, Integer) >= min_features)
+            datasets = datasets.filter(
+                db.cast(db.func.nullif(DSMetrics.number_of_features, ''), db.String).cast(db.Integer) >= min_features
+            )
+        
         if max_features is not None:
-            datasets = datasets.filter(db.cast(DSMetrics.number_of_features, Integer) <= max_features)
+            datasets = datasets.filter(
+                db.cast(db.func.nullif(DSMetrics.number_of_features, ''), db.String).cast(db.Integer) <= max_features
+            )
+
+        # Aplicar filtros de productos
         if min_products is not None:
-            datasets = datasets.filter(db.cast(DSMetrics.number_of_models, Integer) >= min_products)
+            datasets = datasets.filter(
+                db.cast(db.func.nullif(DSMetrics.number_of_models, ''), db.String).cast(db.Integer) >= min_products
+            )
+        
         if max_products is not None:
-            datasets = datasets.filter(db.cast(DSMetrics.number_of_models, Integer) <= max_products)
+            datasets = datasets.filter(
+                db.cast(db.func.nullif(DSMetrics.number_of_models, ''), db.String).cast(db.Integer) <= max_products
+            )
 
         # Order by created_at
         if sorting == "oldest":
             datasets = datasets.order_by(self.model.created_at.asc())
         else:
             datasets = datasets.order_by(self.model.created_at.desc())
-
-        return datasets.all()
+      
+        return datasets.distinct().all()
