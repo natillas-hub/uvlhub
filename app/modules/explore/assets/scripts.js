@@ -21,6 +21,10 @@ function send_query() {
                 query: document.querySelector('#query').value,
                 publication_type: document.querySelector('#publication_type').value,
                 sorting: document.querySelector('[name="sorting"]:checked').value,
+                min_features: document.querySelector('#min_features').value || null,
+                max_features: document.querySelector('#max_features').value || null,
+                min_products: document.querySelector('#min_products').value || null,
+                max_products: document.querySelector('#max_products').value || null
             };
 
             console.log(document.querySelector('#publication_type').value);
@@ -179,7 +183,13 @@ function clearFilters() {
         // option.dispatchEvent(new Event('input', {bubbles: true}));
     });
 
-    // Perform a new search with the reset filters
+    // Limpiar los nuevos campos
+    document.querySelector('#min_features').value = "";
+    document.querySelector('#max_features').value = "";
+    document.querySelector('#min_products').value = "";
+    document.querySelector('#max_products').value = "";
+    
+    // Realizar la búsqueda con los filtros reseteados
     queryInput.dispatchEvent(new Event('input', {bubbles: true}));
 }
 
