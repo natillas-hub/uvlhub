@@ -4,6 +4,8 @@ from app import db
 from app.modules.dataset.models import DataSet, DSMetrics, DSMetaData, PublicationType
 from app.modules.featuremodel.models import FeatureModel
 from app.modules.hubfile.models import Hubfile
+from app.modules.dataset.services import DataSetService 
+
 
 
 @pytest.fixture(scope="module")
@@ -85,3 +87,55 @@ def test_download_dataset_wrong_format(test_client):
 def test_download_dataset_no_dataset(test_client):
     response = test_client.get("/dataset/download/3/UVL")
     assert response.status_code == 404
+
+# Tests unitarios para la feature 2
+def test_user_datasets_single_user(test_client):
+    """
+    Verifica que se obtienen correctamente los datasets de un único usuario.
+    """
+    dataset_service = DataSetService()
+    user_id = 1
+
+    datasets = dataset_service.get_datasets_by_user(user_id)
+
+    # Según los datos de test_client, el usuario con id=1 tiene un dataset.
+    assert len(datasets) == 1
+    assert all(dataset.user_id == user_id for dataset in datasets)
+    assert datasets[0].ds_meta_data.title == "Test Dataset Title"
+
+
+def test_user_datasets_no_datasets(test_client):
+    """
+    Verifica que un usuario sin datasets no genera resultados.
+    """
+    dataset_service = DataSetService()
+    user_id = 999  # Usuario inexistente en los datos del test_client
+
+    datasets = dataset_service.get_datasets_by_user(user_id)
+
+    assert len(datasets) == 0
+
+
+def test_user_datasets_multiple_users(test_client):
+    """
+    Verifica que no se mezclan datasets entre usuarios diferentes.
+    """
+    dataset_service = DataSetService()
+    user_id = 2
+
+    # No hay datasets creados para user_id=2 en los datos del test_client
+    datasets = dataset_service.get_datasets_by_user(user_id)
+
+    assert len(datasets) == 0
+
+
+def test_user_datasets_invalid_user_id(test_client):
+    """
+    Verifica que la función maneja IDs de usuario no válidos devolviendo una lista vacía.
+    """
+    dataset_service = DataSetService()
+    user_id = None
+
+    datasets = dataset_service.get_datasets_by_user(user_id)
+    assert len(datasets) == 0
+
