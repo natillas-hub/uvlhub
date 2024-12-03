@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from zipfile import ZipFile
 
 from app.modules.hubfile.services import HubfileService
+from app.modules.auth.models import User
 from flamapy.metamodels.fm_metamodel.transformations import UVLReader, GlencoeWriter, SPLOTWriter
 from flamapy.metamodels.pysat_metamodel.transformations import FmToPysat, DimacsWriter
 
@@ -115,12 +116,11 @@ def create_dataset():
 @dataset_bp.route("/dataset/list", methods=["GET", "POST"])
 @login_required
 def list_dataset():
-    total_size_kb = sum(dataset.file_size for dataset in datasets)
     return render_template(
         "dataset/list_datasets.html",
         datasets=dataset_service.get_synchronized(current_user.id),
         local_datasets=dataset_service.get_unsynchronized(current_user.id),
-        total_size_kb = sum(dataset.file_size for dataset in datasets),
+        total_size_kb=sum(dataset.file_size for dataset in dataset_service.get_synchronized(current_user.id)),
     )
 
 
@@ -247,6 +247,94 @@ def download_dataset(dataset_id):
     return resp
 
 
+@dataset_bp.route("/dataset/download/<int:dataset_id>/<string:format>", methods=["GET"])
+def download_dataset_format(dataset_id, format):
+    valid_formats = ["DIMACS", "GLENCOE", "SPLOT", "UVL"]
+
+    if format not in valid_formats:
+        response = jsonify({"error": "Formato de descarga no soportado"})
+        response.status_code = 400
+        return response
+
+    dataset = dataset_service.get_or_404(dataset_id)
+
+    file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
+    temp_dir = tempfile.mkdtemp()
+    zip_path = os.path.join(temp_dir, f"dataset_{dataset_id}.zip")
+
+    with ZipFile(zip_path, "w") as zipf:
+        for subdir, dirs, files in os.walk(file_path):
+            for file in dataset.files():
+                full_path = os.path.join(subdir, file.name)
+
+                with open(full_path, "r") as file_content:
+                    content = file_content.read()
+
+                if format == "DIMACS":
+                    transformed_file_path, original_filename = transform_to_dimacs(file.id)
+                    with open(transformed_file_path, "r") as transformed_file:
+                        content = transformed_file.read()
+                    new_filename = f"{original_filename}_cnf.txt"
+
+                elif format == "GLENCOE":
+                    transformed_file_path, original_filename = transform_to_glencoe(file.id)
+                    with open(transformed_file_path, "r") as transformed_file:
+                        content = transformed_file.read()
+                    new_filename = f"{original_filename}_glencoe.txt"
+
+                elif format == "SPLOT":
+                    transformed_file_path, original_filename = transform_to_splot(file.id)
+                    with open(transformed_file_path, "r") as transformed_file:
+                        content = transformed_file.read()
+                    new_filename = f"{original_filename}_splot.txt"
+                elif format == "UVL":
+                    new_filename = f"{file.name}"
+
+                with zipf.open(new_filename, "w") as zipfile:
+                    zipfile.write(content.encode())
+
+    user_cookie = request.cookies.get("download_cookie")
+    if not user_cookie:
+        user_cookie = str(
+            uuid.uuid4()
+        )  # Generate a new unique identifier if it does not exist
+        # Save the cookie to the user's browser
+        resp = make_response(
+            send_from_directory(
+                temp_dir,
+                f"dataset_{dataset_id}.zip",
+                as_attachment=True,
+                mimetype="application/zip",
+            )
+        )
+        resp.set_cookie("download_cookie", user_cookie)
+    else:
+        resp = send_from_directory(
+            temp_dir,
+            f"dataset_{dataset_id}.zip",
+            as_attachment=True,
+            mimetype="application/zip",
+        )
+
+    # Check if the download record already exists for this cookie
+    existing_record = DSDownloadRecord.query.filter_by(
+        user_id=current_user.id if current_user.is_authenticated else None,
+        dataset_id=dataset_id,
+        download_cookie=user_cookie
+    ).first()
+
+    if not existing_record:
+        # Record the download in your database
+        DSDownloadRecordService().create(
+            user_id=current_user.id if current_user.is_authenticated else None,
+            dataset_id=dataset_id,
+            download_date=datetime.now(timezone.utc),
+            download_cookie=user_cookie,
+        )
+
+    return resp
+
+
 @dataset_bp.route("/doi/<path:doi>/", methods=["GET"])
 def subdomain_index(doi):
 
@@ -284,6 +372,7 @@ def get_unsynchronized_dataset(dataset_id):
         abort(404)
 
     return render_template("dataset/view_dataset.html", dataset=dataset)
+
 
 # feat/4
 @dataset_bp.route("/dataset/download_all", methods=["GET"])
@@ -352,44 +441,6 @@ def download_all():
         mimetype="application/zip"
     )
 
-# @dataset_bp.route("/doi/<path:doi>/", methods=["GET"])
-# def subdomain_index(doi):
-
-#     # Check if the DOI is an old DOI
-#     new_doi = doi_mapping_service.get_new_doi(doi)
-#     if new_doi:
-#         # Redirect to the same path with the new DOI
-#         return redirect(url_for('dataset.subdomain_index', doi=new_doi), code=302)
-
-#     # Try to search the dataset by the provided DOI (which should already be the new one)
-#     ds_meta_data = dsmetadata_service.filter_by_doi(doi)
-
-#     if not ds_meta_data:
-#         abort(404)
-
-#     # Get dataset
-#     dataset = ds_meta_data.data_set
-
-#     # Save the cookie to the user's browser
-#     user_cookie = ds_view_record_service.create_cookie(dataset=dataset)
-#     resp = make_response(render_template("dataset/view_dataset.html", dataset=dataset))
-#     resp.set_cookie("view_cookie", user_cookie)
-
-#     return resp
-
-
-# @dataset_bp.route("/dataset/unsynchronized/<int:dataset_id>/", methods=["GET"])
-# @login_required
-# def get_unsynchronized_dataset(dataset_id):
-
-#     # Get dataset
-#     dataset = dataset_service.get_unsynchronized_dataset(current_user.id, dataset_id)
-
-#     if not dataset:
-#         abort(404)
-
-#     return render_template("dataset/view_dataset.html", dataset=dataset)
-
 
 def transform_to_dimacs(file_id):
     temp_file = tempfile.NamedTemporaryFile(suffix='.dimacs', delete=False)
@@ -428,38 +479,3 @@ def transform_to_glencoe(file_id):
         return temp_file.name, hubfile.name
     finally:
         pass
-
-# @dataset_bp.route("/dataset/download_all", methods=["GET"])
-# @login_required
-# def download_all():
-#     # Crear un directorio temporal para almacenar el archivo ZIP
-#     temp_dir = tempfile.mkdtemp()
-#     zip_path = os.path.join(temp_dir, "all_datasets.zip")
-
-#     # Crear el archivo ZIP
-#     with ZipFile(zip_path, "w") as zipf:
-#         # Obtener todos los datasets asociados al usuario actual
-#         datasets = dataset_service.get_synchronized(current_user.id)
-
-#         for dataset in datasets:
-#             # Definir la ruta de archivos del dataset
-#             file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
-            
-#             # Comprimir todos los archivos de cada dataset
-#             for subdir, dirs, files in os.walk(file_path):
-#                 for file in files:
-#                     full_path = os.path.join(subdir, file)
-#                     relative_path = os.path.relpath(full_path, file_path)
-#                     zipf.write(
-#                         full_path,
-#                         arcname=os.path.join(f"dataset_{dataset.id}", relative_path),
-#                     )
-
-#     # Enviar el archivo ZIP como respuesta
-#     return send_from_directory(
-#         temp_dir,
-#         "all_datasets.zip",
-#         as_attachment=True,
-#         mimetype="application/zip"
-#     )
-
