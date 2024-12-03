@@ -8,7 +8,6 @@ from datetime import datetime, timezone
 from zipfile import ZipFile
 
 from app.modules.hubfile.services import HubfileService
-from app.modules.auth.models import User
 from flamapy.metamodels.fm_metamodel.transformations import UVLReader, GlencoeWriter, SPLOTWriter
 from flamapy.metamodels.pysat_metamodel.transformations import FmToPysat, DimacsWriter
 
