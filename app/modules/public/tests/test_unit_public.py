@@ -91,7 +91,10 @@ def test_download_all_dataset_wrong_format(test_client):
     # Realizar prueba
     response = test_client.get("/dataset/download_all?format=WRONG")
     assert response.status_code == 400
-    assert response.json == {"error": "Formato de descarga no soportado"}
+    assert response.json == {
+        "error": "Formato de descarga no soportado",
+        "valid_formats": ["DIMACS", "GLENCOE", "SPLOT", "UVL"]
+    }
 
     # Cerrar sesión
     logout(test_client)

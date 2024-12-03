@@ -37,6 +37,7 @@ from app.modules.dataset.services import (
     DOIMappingService
 )
 from app.modules.zenodo.services import ZenodoService
+from app.modules.auth.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -377,68 +378,107 @@ def get_unsynchronized_dataset(dataset_id):
 @dataset_bp.route("/dataset/download_all", methods=["GET"])
 @login_required
 def download_all():
-    # Obtener el formato desde los parámetros de la solicitud
+    # Validar formato
     format = request.args.get("format")
     valid_formats = ["DIMACS", "GLENCOE", "SPLOT", "UVL"]
 
     if format not in valid_formats:
-        response = jsonify({"error": "Formato de descarga no soportado"})
-        response.status_code = 400
-        return response
+        return jsonify({
+            "error": "Formato de descarga no soportado",
+            "valid_formats": valid_formats
+        }), 400
 
-    # Crear un directorio temporal para almacenar el archivo ZIP
+    # Obtener datasets
+    datasets = dataset_service.get_synchronized(current_user.id)
+    
+    if not datasets:
+        return jsonify({
+            "error": "No hay datasets disponibles para descargar"
+        }), 404
+
+    # Crear directorio temporal
     temp_dir = tempfile.mkdtemp()
     zip_path = os.path.join(temp_dir, "all_datasets.zip")
+    
+    try:
+        with ZipFile(zip_path, "w") as zipf:
+            files_added = False
+            
+            for dataset in datasets:
+                file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
+                
+                if not dataset.files():
+                    continue
+                    
+                for file in dataset.files():
+                    try:
+                        full_path = os.path.join(file_path, file.name)
+                        
+                        if not os.path.exists(full_path):
+                            logger.warning(f"File not found: {full_path}")
+                            continue
 
-    # Crear el archivo ZIP
-    with ZipFile(zip_path, "w") as zipf:
-        # Obtener todos los datasets asociados al usuario actual
-        datasets = dataset_service.get_synchronized(current_user.id)
+                        # Leer y transformar contenido
+                        try:
+                            with open(full_path, "r") as file_content:
+                                content = file_content.read()
 
-        for dataset in datasets:
-            # Definir la ruta de archivos del dataset
-            file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
+                            if format == "DIMACS":
+                                transformed_file_path, original_filename = transform_to_dimacs(file.id)
+                                new_filename = f"{original_filename}_cnf.txt"
+                            elif format == "GLENCOE":
+                                transformed_file_path, original_filename = transform_to_glencoe(file.id)
+                                new_filename = f"{original_filename}_glencoe.txt"
+                            elif format == "SPLOT":
+                                transformed_file_path, original_filename = transform_to_splot(file.id)
+                                new_filename = f"{original_filename}_splot.txt"
+                            else:  # UVL
+                                transformed_file_path = full_path
+                                new_filename = file.name
 
-            for file in dataset.files():  # Se asume que `dataset.files()` devuelve los archivos del dataset
-                full_path = os.path.join(file_path, file.name)
+                            with open(transformed_file_path, "r") as transformed_file:
+                                content = transformed_file.read()
 
-                # Leer el contenido del archivo original
-                with open(full_path, "r") as file_content:
-                    content = file_content.read()
+                            # Añadir al ZIP
+                            zip_path = os.path.join(f"dataset_{dataset.id}", new_filename)
+                            with zipf.open(zip_path, "w") as zipfile:
+                                zipfile.write(content.encode())
+                                files_added = True
 
-                # Transformar el contenido según el formato solicitado
-                if format == "DIMACS":
-                    transformed_file_path, original_filename = transform_to_dimacs(file.id)
-                    with open(transformed_file_path, "r") as transformed_file:
-                        content = transformed_file.read()
-                    new_filename = f"{original_filename}_cnf.txt"
+                        except Exception as e:
+                            logger.error(f"Error processing file {file.name}: {str(e)}")
+                            continue
 
-                elif format == "GLENCOE":
-                    transformed_file_path, original_filename = transform_to_glencoe(file.id)
-                    with open(transformed_file_path, "r") as transformed_file:
-                        content = transformed_file.read()
-                    new_filename = f"{original_filename}_glencoe.txt"
+                    except Exception as e:
+                        logger.error(f"Error with file in dataset {dataset.id}: {str(e)}")
+                        continue
 
-                elif format == "SPLOT":
-                    transformed_file_path, original_filename = transform_to_splot(file.id)
-                    with open(transformed_file_path, "r") as transformed_file:
-                        content = transformed_file.read()
-                    new_filename = f"{original_filename}_splot.txt"
+            if not files_added:
+                return jsonify({
+                    "error": "No se pudieron procesar archivos para la descarga"
+                }), 500
 
-                elif format == "UVL":
-                    new_filename = f"{file.name}"
+        # Enviar ZIP
+        return send_from_directory(
+            temp_dir,
+            "all_datasets.zip",
+            as_attachment=True,
+            mimetype="application/zip"
+        )
 
-                # Añadir el archivo transformado al archivo ZIP
-                with zipf.open(os.path.join(f"dataset_{dataset.id}", new_filename), "w") as zipfile:
-                    zipfile.write(content.encode())
+    except Exception as e:
+        logger.error(f"Error creating ZIP file: {str(e)}")
+        return jsonify({
+            "error": "Error al crear el archivo ZIP"
+        }), 500
 
-    # Enviar el archivo ZIP como respuesta
-    return send_from_directory(
-        temp_dir,
-        "all_datasets.zip",
-        as_attachment=True,
-        mimetype="application/zip"
-    )
+    finally:
+        # Limpiar archivos temporales
+        try:
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+        except Exception as e:
+            logger.error(f"Error cleaning temporary files: {str(e)}")
 
 
 def transform_to_dimacs(file_id):
@@ -478,3 +518,14 @@ def transform_to_glencoe(file_id):
         return temp_file.name, hubfile.name
     finally:
         pass
+
+
+@dataset_bp.route("/user/<int:user_id>/datasets")
+def user_datasets(user_id):
+    user = User.query.get_or_404(user_id)
+    datasets = dataset_service.get_datasets_by_user(user_id)
+    return render_template(
+        "dataset/user_datasets.html",
+        datasets=datasets,
+        user=user
+    )
