@@ -390,7 +390,7 @@ def download_all():
 
     # Obtener datasets
     datasets = dataset_service.get_synchronized(current_user.id)
-    
+
     if not datasets:
         return jsonify({
             "error": "No hay datasets disponibles para descargar"
@@ -399,30 +399,24 @@ def download_all():
     # Crear directorio temporal
     temp_dir = tempfile.mkdtemp()
     zip_path = os.path.join(temp_dir, "all_datasets.zip")
-    
+
     try:
         with ZipFile(zip_path, "w") as zipf:
             files_added = False
-            
             for dataset in datasets:
-                file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
-                
                 if not dataset.files():
                     continue
-                    
+                dataset_files_processed = False
                 for file in dataset.files():
                     try:
+                        file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
                         full_path = os.path.join(file_path, file.name)
-                        
                         if not os.path.exists(full_path):
                             logger.warning(f"File not found: {full_path}")
                             continue
 
                         # Leer y transformar contenido
                         try:
-                            with open(full_path, "r") as file_content:
-                                content = file_content.read()
-
                             if format == "DIMACS":
                                 transformed_file_path, original_filename = transform_to_dimacs(file.id)
                                 new_filename = f"{original_filename}_cnf.txt"
@@ -444,6 +438,7 @@ def download_all():
                             with zipf.open(zip_path, "w") as zipfile:
                                 zipfile.write(content.encode())
                                 files_added = True
+                                dataset_files_processed = True
 
                         except Exception as e:
                             logger.error(f"Error processing file {file.name}: {str(e)}")
@@ -453,10 +448,14 @@ def download_all():
                         logger.error(f"Error with file in dataset {dataset.id}: {str(e)}")
                         continue
 
+                if not dataset_files_processed:
+                    logger.warning(f"No files were processed for dataset {dataset.id}")
+
+            # Si no se añadió ningún archivo, crear un ZIP vacío pero válido
             if not files_added:
-                return jsonify({
-                    "error": "No se pudieron procesar archivos para la descarga"
-                }), 500
+                # Añadir un archivo README al ZIP
+                with zipf.open("README.txt", "w") as readme:
+                    readme.write(b"No files were available for download in the selected format.")
 
         # Enviar ZIP
         return send_from_directory(
