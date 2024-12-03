@@ -8,7 +8,6 @@ from datetime import datetime, timezone
 from zipfile import ZipFile
 
 from app.modules.hubfile.services import HubfileService
-from app.modules.auth.models import User
 from flamapy.metamodels.fm_metamodel.transformations import UVLReader, GlencoeWriter, SPLOTWriter
 from flamapy.metamodels.pysat_metamodel.transformations import FmToPysat, DimacsWriter
 
@@ -38,6 +37,7 @@ from app.modules.dataset.services import (
     DOIMappingService
 )
 from app.modules.zenodo.services import ZenodoService
+from app.modules.auth.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +120,7 @@ def list_dataset():
         "dataset/list_datasets.html",
         datasets=dataset_service.get_synchronized(current_user.id),
         local_datasets=dataset_service.get_unsynchronized(current_user.id),
+        total_size_kb=sum(dataset.file_size for dataset in dataset_service.get_synchronized(current_user.id)),
     )
 
 
@@ -373,6 +374,112 @@ def get_unsynchronized_dataset(dataset_id):
     return render_template("dataset/view_dataset.html", dataset=dataset)
 
 
+# feat/4
+@dataset_bp.route("/dataset/download_all", methods=["GET"])
+@login_required
+def download_all():
+    # Validar formato
+    format = request.args.get("format")
+    valid_formats = ["DIMACS", "GLENCOE", "SPLOT", "UVL"]
+
+    if format not in valid_formats:
+        return jsonify({
+            "error": "Formato de descarga no soportado",
+            "valid_formats": valid_formats
+        }), 400
+
+    # Obtener datasets
+    datasets = dataset_service.get_synchronized(current_user.id)
+
+    if not datasets:
+        return jsonify({
+            "error": "No hay datasets disponibles para descargar"
+        }), 404
+
+    # Crear directorio temporal
+    temp_dir = tempfile.mkdtemp()
+    zip_path = os.path.join(temp_dir, "all_datasets.zip")
+
+    try:
+        with ZipFile(zip_path, "w") as zipf:
+            files_added = False
+            for dataset in datasets:
+                if not dataset.files():
+                    continue
+                dataset_files_processed = False
+                for file in dataset.files():
+                    try:
+                        file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
+                        full_path = os.path.join(file_path, file.name)
+                        if not os.path.exists(full_path):
+                            logger.warning(f"File not found: {full_path}")
+                            continue
+
+                        # Leer y transformar contenido
+                        try:
+                            if format == "DIMACS":
+                                transformed_file_path, original_filename = transform_to_dimacs(file.id)
+                                new_filename = f"{original_filename}_cnf.txt"
+                            elif format == "GLENCOE":
+                                transformed_file_path, original_filename = transform_to_glencoe(file.id)
+                                new_filename = f"{original_filename}_glencoe.txt"
+                            elif format == "SPLOT":
+                                transformed_file_path, original_filename = transform_to_splot(file.id)
+                                new_filename = f"{original_filename}_splot.txt"
+                            else:  # UVL
+                                transformed_file_path = full_path
+                                new_filename = file.name
+
+                            with open(transformed_file_path, "r") as transformed_file:
+                                content = transformed_file.read()
+
+                            # Añadir al ZIP
+                            zip_path = os.path.join(f"dataset_{dataset.id}", new_filename)
+                            with zipf.open(zip_path, "w") as zipfile:
+                                zipfile.write(content.encode())
+                                files_added = True
+                                dataset_files_processed = True
+
+                        except Exception as e:
+                            logger.error(f"Error processing file {file.name}: {str(e)}")
+                            continue
+
+                    except Exception as e:
+                        logger.error(f"Error with file in dataset {dataset.id}: {str(e)}")
+                        continue
+
+                if not dataset_files_processed:
+                    logger.warning(f"No files were processed for dataset {dataset.id}")
+
+            # Si no se añadió ningún archivo, crear un ZIP vacío pero válido
+            if not files_added:
+                # Añadir un archivo README al ZIP
+                with zipf.open("README.txt", "w") as readme:
+                    readme.write(b"No files were available for download in the selected format.")
+
+        # Enviar ZIP
+        return send_from_directory(
+            temp_dir,
+            "all_datasets.zip",
+            as_attachment=True,
+            mimetype="application/zip"
+        )
+
+    except Exception as e:
+        logger.error(f"Error creating ZIP file: {str(e)}")
+        return jsonify({
+            "error": "Error al crear el archivo ZIP"
+        }), 500
+
+    finally:
+        # Limpiar archivos temporales
+        try:
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+        except Exception as e:
+            logger.error(f"Error cleaning temporary files: {str(e)}")
+
+
 def transform_to_dimacs(file_id):
     temp_file = tempfile.NamedTemporaryFile(suffix='.dimacs', delete=False)
     try:
@@ -412,8 +519,12 @@ def transform_to_glencoe(file_id):
         pass
 
 
-@dataset_bp.route("/dataset/user/<int:user_id>")  # Method get?
+@dataset_bp.route("/user/<int:user_id>/datasets")
 def user_datasets(user_id):
     user = User.query.get_or_404(user_id)
     datasets = dataset_service.get_datasets_by_user(user_id)
-    return render_template('dataset/user_datasets.html', user=user, datasets=datasets)
+    return render_template(
+        "dataset/user_datasets.html",
+        datasets=datasets,
+        user=user
+    )
