@@ -144,6 +144,9 @@ class DataSetService(BaseService):
     def get_datasets_by_user(self, user_id):
         return db.session.query(DataSet).filter_by(user_id=user_id).all()
 
+    def get_all_datasets(self):
+        return db.session.query(DataSet).all()
+
 
 class AuthorService(BaseService):
     def __init__(self):
