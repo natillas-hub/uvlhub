@@ -65,9 +65,6 @@ def test_client(test_client):
 
 
 def test_download_all_dataset_succesful(test_client):
-    # Iniciar sesión
-    login_response = login(test_client, "test@example.com", "test1234")
-    assert login_response.status_code == 200, "Login fallido"
 
     # Realizar pruebas
     response = test_client.get("/dataset/download_all?format=UVL")
@@ -79,14 +76,8 @@ def test_download_all_dataset_succesful(test_client):
     response = test_client.get("/dataset/download_all?format=GLENCOE")
     assert response.status_code == 200
 
-    # Cerrar sesión
-    logout(test_client)
-
 
 def test_download_all_dataset_wrong_format(test_client):
-    # Iniciar sesión
-    login_response = login(test_client, "test@example.com", "test1234")
-    assert login_response.status_code == 200, "Login fallido"
 
     # Realizar prueba
     response = test_client.get("/dataset/download_all?format=WRONG")
@@ -96,18 +87,12 @@ def test_download_all_dataset_wrong_format(test_client):
         "valid_formats": ["DIMACS", "GLENCOE", "SPLOT", "UVL"]
     }
 
-    # Cerrar sesión
-    logout(test_client)
-
 
 def test_download_all_dataset_empty(test_client):
     """
     Prueba que verifica el comportamiento cuando se intenta descargar datasets
     que no contienen archivos.
     """
-    # Iniciar sesión
-    login_response = login(test_client, "test@example.com", "test1234")
-    assert login_response.status_code == 200, "Login fallido"
 
     try:
         # Crear un dataset vacío (sin archivos)
@@ -153,21 +138,6 @@ def test_download_all_dataset_empty(test_client):
         db.session.delete(ds_metrics_test)
         db.session.commit()
         logout(test_client)
-
-
-@pytest.fixture
-def test_client_without_login(test_app):
-    with test_app.test_client() as client:
-        yield client
-
-
-def test_download_all_dataset_without_login(test_client_without_login):
-    """
-    Prueba que verifica que no se pueden descargar datasets sin iniciar sesión
-    """
-    response = test_client_without_login.get("/dataset/download_all?format=UVL")
-    assert response.status_code == 302
-    assert "/login" in response.location
 
 
 @pytest.fixture

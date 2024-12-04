@@ -376,7 +376,6 @@ def get_unsynchronized_dataset(dataset_id):
 
 # feat/4
 @dataset_bp.route("/dataset/download_all", methods=["GET"])
-@login_required
 def download_all():
     # Validar formato
     format = request.args.get("format")
@@ -389,7 +388,7 @@ def download_all():
         }), 400
 
     # Obtener datasets
-    datasets = dataset_service.get_synchronized(current_user.id)
+    datasets = dataset_service.get_all_datasets()
 
     if not datasets:
         return jsonify({
