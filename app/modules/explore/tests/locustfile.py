@@ -1,6 +1,6 @@
 from locust import HttpUser, TaskSet, task
 from core.environment.host import get_host_for_locust_testing
-import random
+from secrets import choice, randbelow
 
 
 class ExploreBehavior(TaskSet):
@@ -39,7 +39,7 @@ class ExploreBehavior(TaskSet):
         """Búsqueda con términos específicos"""
         queries = ['Test Integration', 'test', 'data', 'research']
         payload = {
-            'query': random.choice(queries),
+            'query': choice(queries),
             'publication_type': 'any',
             'sorting': 'newest'
         }
@@ -55,7 +55,7 @@ class ExploreBehavior(TaskSet):
         types = ['article', 'dataset', 'any']
         payload = {
             'query': '',
-            'publication_type': random.choice(types),
+            'publication_type': choice(types),
             'sorting': 'newest'
         }
         with self.client.post("/explore", json=payload, catch_response=True) as response:
@@ -71,7 +71,7 @@ class ExploreBehavior(TaskSet):
         payload = {
             'query': '',
             'publication_type': 'any',
-            'sorting': random.choice(sorting_options)
+            'sorting': choice(sorting_options)
         }
         with self.client.post("/explore", json=payload, catch_response=True) as response:
             if response.status_code != 200:
@@ -86,8 +86,8 @@ class ExploreBehavior(TaskSet):
             'query': '',
             'publication_type': 'any',
             'sorting': 'newest',
-            'min_features': random.randint(1, 50),
-            'max_features': random.randint(51, 100)
+            'min_features': randbelow(50) + 1,  # 1-50
+            'max_features': randbelow(50) + 51  # 51-100
         }
         with self.client.post("/explore", json=payload, catch_response=True) as response:
             if response.status_code != 200:
@@ -102,8 +102,8 @@ class ExploreBehavior(TaskSet):
             'query': '',
             'publication_type': 'any',
             'sorting': 'newest',
-            'min_products': random.randint(1, 50),
-            'max_products': random.randint(51, 100)
+            'min_products': randbelow(50) + 1,  # 1-50
+            'max_products': randbelow(50) + 51  # 51-100
         }
         with self.client.post("/explore", json=payload, catch_response=True) as response:
             if response.status_code != 200:
