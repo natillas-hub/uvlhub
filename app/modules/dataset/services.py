@@ -16,7 +16,8 @@ from app.modules.dataset.repositories import (
     DSDownloadRecordRepository,
     DSMetaDataRepository,
     DSViewRecordRepository,
-    DataSetRepository
+    DataSetRepository,
+    DSMetricsRepository
 )
 from app.modules.featuremodel.repositories import FMMetaDataRepository, FeatureModelRepository
 from app.modules.hubfile.repositories import (
@@ -49,6 +50,7 @@ class DataSetService(BaseService):
         self.hubfilerepository = HubfileRepository()
         self.dsviewrecord_repostory = DSViewRecordRepository()
         self.hubfileviewrecord_repository = HubfileViewRecordRepository()
+        self.dsmetrics_repository = DSMetricsRepository()
 
     def move_feature_models(self, dataset: DataSet):
         current_user = AuthenticationService().get_authenticated_user()
@@ -100,8 +102,14 @@ class DataSetService(BaseService):
             "orcid": current_user.profile.orcid,
         }
         try:
+
+            dsmetrics = self.dsmetrics_repository.create(
+                number_of_models=len(form.feature_models),
+                number_of_features=0
+            )
+
             logger.info(f"Creating dsmetadata...: {form.get_dsmetadata()}")
-            dsmetadata = self.dsmetadata_repository.create(**form.get_dsmetadata())
+            dsmetadata = self.dsmetadata_repository.create(**form.get_dsmetadata(), ds_metrics_id=dsmetrics.id)
             for author_data in [main_author] + form.get_authors():
                 author = self.author_repository.create(commit=False, ds_meta_data_id=dsmetadata.id, **author_data)
                 dsmetadata.authors.append(author)
@@ -140,6 +148,10 @@ class DataSetService(BaseService):
     def get_uvlhub_doi(self, dataset: DataSet) -> str:
         domain = os.getenv('DOMAIN', 'localhost')
         return f'http://{domain}/doi/{dataset.ds_meta_data.dataset_doi}'
+
+    def get_deposition_doi(self, dataset: DataSet) -> str:
+        domain = os.getenv('DOMAIN', 'localhost')
+        return f'http://{domain}/fakenodo/{dataset.ds_meta_data.deposition_id}'
 
     def get_datasets_by_user(self, user_id):
         return db.session.query(DataSet).filter_by(user_id=user_id).all()
