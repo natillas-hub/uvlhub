@@ -12,6 +12,7 @@ class DatasetBehavior(TaskSet):
         response = self.client.get("/dataset/upload")
         get_csrf_token(response)
     # Tests de Locust para probar la feature de Download All
+
     @task
     def download_all_uvl(self):
         # Prueba la funcionalidad download_all en formato UVL
@@ -22,6 +23,7 @@ class DatasetBehavior(TaskSet):
             print("No datasets available for download.")
         else:
             print(f"Error in download all: {response.status_code}")
+
     @task
     def download_all_dimacs(self):
         # Prueba la funcionalidad download_all en formato DIMACS
@@ -32,6 +34,7 @@ class DatasetBehavior(TaskSet):
             print("No datasets available for download.")
         else:
             print(f"Error in download all: {response.status_code}")
+
     @task
     def download_all_glencoe(self):
         # Prueba la funcionalidad download_all en formato GLENCOE
@@ -42,6 +45,7 @@ class DatasetBehavior(TaskSet):
             print("No datasets available for download.")
         else:
             print(f"Error in download all: {response.status_code}")
+
     @task
     def download_all_splot(self):
         # Prueba la funcionalidad download_all en formato SPLOT
