@@ -4,6 +4,7 @@ import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium import webdriver
 
 from core.environment.host import get_host_for_selenium_testing
 from core.selenium.common import initialize_driver, close_driver
@@ -133,3 +134,65 @@ def test_upload_dataset():
 
 # Call the test function
 test_upload_dataset()
+
+# Tests de Selenium de la feature Download All
+
+
+class DownloadAllInDimacs:
+    def setup_method(self, method):
+        self.driver = webdriver.Firefox()
+        self.vars = {}
+
+    def teardown_method(self, method):
+        self.driver.quit()
+
+    def download_all_dimacs(self):
+        self.driver.get("http://localhost:5000/")
+        self.driver.set_window_size(1101, 527)
+        self.driver.find_element(By.CSS_SELECTOR, ".btn-primary:nth-child(1)").click()
+        self.driver.find_element(By.LINK_TEXT, "Download all in DIMACS").click()
+
+
+class DownloadAllInGlencoe():
+    def setup_method(self, method):
+        self.driver = webdriver.Firefox()
+        self.vars = {}
+
+    def teardown_method(self, method):
+        self.driver.quit()
+
+    def download_all_glencoe(self):
+        self.driver.get("http://localhost:5000/")
+        self.driver.set_window_size(1101, 527)
+        self.driver.find_element(By.CSS_SELECTOR, ".btn-primary:nth-child(1)").click()
+        self.driver.find_element(By.LINK_TEXT, "Download all in GLENCOE").click()
+
+
+class DownloadlAllInSplot():
+    def setup_method(self, method):
+        self.driver = webdriver.Firefox()
+        self.vars = {}
+
+    def teardown_method(self, method):
+        self.driver.quit()
+
+    def download_all_splot(self):
+        self.driver.get("http://localhost:5000/")
+        self.driver.set_window_size(1101, 527)
+        self.driver.find_element(By.CSS_SELECTOR, ".btn-primary:nth-child(1)").click()
+        self.driver.find_element(By.LINK_TEXT, "Download all in SPLOT").click()
+
+
+class DownloadAllInUvl():
+    def setup_method(self, method):
+        self.driver = webdriver.Firefox()
+        self.vars = {}
+
+    def teardown_method(self, method):
+        self.driver.quit()
+
+    def download_all_uvl(self):
+        self.driver.get("http://localhost:5000/")
+        self.driver.set_window_size(1101, 527)
+        self.driver.find_element(By.CSS_SELECTOR, ".btn-primary:nth-child(1)").click()
+        self.driver.find_element(By.LINK_TEXT, "Download all in UVL").click()
