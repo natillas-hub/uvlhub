@@ -260,7 +260,7 @@ def test_single_level():
 
 def test_inconsistent_indentation():
     """
-    Verifica que funciona aunque tenga indentaciones inconsistentes 
+    Verifica que funciona aunque tenga indentaciones inconsistentes
     """
     temp_dir = "temp_test_files"
     os.makedirs(temp_dir, exist_ok=True)
@@ -350,11 +350,10 @@ def test_complex_hierarchy():
     os.rmdir(temp_dir)
 
 
-
 # Tests unitarios relaccionados con Explore (Issue #6)
 def test_basic_feature_count():
     """
-    Verifica que el método cuenta correctamente las features básicas dentro del bloque "features".
+    Verifica que el método cuenta correctamente las features básicas dentro del bloque "features"
     """
     temp_dir = "temp_test_files"
     os.makedirs(temp_dir, exist_ok=True)
@@ -380,7 +379,7 @@ def test_basic_feature_count():
 
 def test_no_features_block():
     """
-    Verifica que devuelve 0 cuando no hay un bloque "features" en el archivo.
+    Verifica que devuelve 0 cuando no hay un bloque "features" en el archivo
     """
     temp_dir = "temp_test_files"
     os.makedirs(temp_dir, exist_ok=True)
@@ -405,7 +404,7 @@ def test_no_features_block():
 
 def test_nested_features():
     """
-    Verifica que cuenta correctamente las features incluso si están anidadas.
+    Verifica que cuenta correctamente las features incluso si están anidadas
     """
     temp_dir = "temp_test_files"
     os.makedirs(temp_dir, exist_ok=True)
@@ -432,7 +431,7 @@ def test_nested_features():
 
 def test_empty_features_block():
     """
-    Verifica que devuelve 0 cuando el bloque "features" está vacío.
+    Verifica que devuelve 0 cuando el bloque "features" está vacío
     """
     temp_dir = "temp_test_files"
     os.makedirs(temp_dir, exist_ok=True)
@@ -455,7 +454,7 @@ def test_empty_features_block():
 
 def test_features_with_keywords():
     """
-    Verifica que no cuenta las palabras clave como features dentro del bloque "features".
+    Verifica que no cuenta las palabras clave como features dentro del bloque "features"
     """
     temp_dir = "temp_test_files"
     os.makedirs(temp_dir, exist_ok=True)
@@ -482,7 +481,7 @@ def test_features_with_keywords():
 
 def test_features_block_with_exit():
     """
-    Verifica que el conteo se detiene al salir del bloque "features".
+    Verifica que el conteo se detiene al salir del bloque "features"
     """
     temp_dir = "temp_test_files"
     os.makedirs(temp_dir, exist_ok=True)
