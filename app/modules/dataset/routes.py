@@ -377,7 +377,7 @@ def download_all():
         }), 400
 
     # Obtener datasets
-    datasets = dataset_service.get_all_datasets()
+    datasets = dataset_service.get_all_published_datasets()
 
     if not datasets:
         return jsonify({
