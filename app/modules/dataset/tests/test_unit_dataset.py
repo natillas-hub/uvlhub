@@ -141,8 +141,8 @@ def test_user_datasets_invalid_user_id(test_client):
     datasets = dataset_service.get_datasets_by_user(user_id)
     assert len(datasets) == 0
 
-# Tests unitarios relaccionados con Fakenodo (Issue #5)
 
+# Tests unitarios relaccionados con Fakenodo (Issue #5)
 def test_simple_hierarchy():
     """
     Verifica que funciona y que coincide con la salida esperada
@@ -208,6 +208,7 @@ def test_simple_hierarchy():
         os.remove(os.path.join(temp_dir, file))
     os.rmdir(temp_dir)
 
+
 def test_empty_file():
     """
     Verifica que no hay fallos o errores cuando recibe un fichero vacío
@@ -229,6 +230,7 @@ def test_empty_file():
     for file in os.listdir(temp_dir):
         os.remove(os.path.join(temp_dir, file))
     os.rmdir(temp_dir)
+
 
 def test_single_level():
     """
@@ -254,6 +256,7 @@ def test_single_level():
     for file in os.listdir(temp_dir):
         os.remove(os.path.join(temp_dir, file))
     os.rmdir(temp_dir)
+
 
 def test_inconsistent_indentation():
     """
@@ -290,6 +293,7 @@ def test_inconsistent_indentation():
     for file in os.listdir(temp_dir):
         os.remove(os.path.join(temp_dir, file))
     os.rmdir(temp_dir)
+
 
 def test_complex_hierarchy():
     """
@@ -346,8 +350,8 @@ def test_complex_hierarchy():
     os.rmdir(temp_dir)
 
 
-# Tests unitarios relaccionados con Explore (Issue #6)
 
+# Tests unitarios relaccionados con Explore (Issue #6)
 def test_basic_feature_count():
     """
     Verifica que el método cuenta correctamente las features básicas dentro del bloque "features".
@@ -373,6 +377,7 @@ def test_basic_feature_count():
     os.remove(file_path)
     os.rmdir(temp_dir)
 
+
 def test_no_features_block():
     """
     Verifica que devuelve 0 cuando no hay un bloque "features" en el archivo.
@@ -396,6 +401,7 @@ def test_no_features_block():
     # Limpieza
     os.remove(file_path)
     os.rmdir(temp_dir)
+
 
 def test_nested_features():
     """
@@ -423,6 +429,7 @@ def test_nested_features():
     os.remove(file_path)
     os.rmdir(temp_dir)
 
+
 def test_empty_features_block():
     """
     Verifica que devuelve 0 cuando el bloque "features" está vacío.
@@ -444,6 +451,7 @@ def test_empty_features_block():
     # Limpieza
     os.remove(file_path)
     os.rmdir(temp_dir)
+
 
 def test_features_with_keywords():
     """
@@ -470,6 +478,7 @@ def test_features_with_keywords():
     # Limpieza
     os.remove(file_path)
     os.rmdir(temp_dir)
+
 
 def test_features_block_with_exit():
     """
