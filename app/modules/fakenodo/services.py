@@ -9,7 +9,7 @@ class FakenodoService(BaseService):
     def get_deposition(self, id):
         return self.deposition_repository.get_by_id(id)
 
-    def create_new_deposition(self, dataset):
+    def create_new_deposition(self, dataset, parsedUVL):
         ds_meta_data = dataset.ds_meta_data
         metadataJSON = {
             "title": ds_meta_data.title,
@@ -19,6 +19,7 @@ class FakenodoService(BaseService):
                 if ds_meta_data.publication_type.value != "none"
                 else None
             ),
+            "models": parsedUVL,
             "description": ds_meta_data.description,
             "creators": [
                 {

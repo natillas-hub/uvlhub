@@ -4,6 +4,7 @@ import hashlib
 import shutil
 from typing import Optional
 import uuid
+import json
 
 from flask import request
 from app import db
@@ -118,6 +119,47 @@ class DataSetService(BaseService):
 
     def total_dataset_views(self) -> int:
         return self.dsviewrecord_repostory.total_dataset_views()
+    
+    @staticmethod
+    def parse_uvl_to_json(file_path):
+        def add_to_hierarchy(hierarchy, level_stack, key, value=None):
+            # Navegar por la jerarquía según el nivel de indentación
+            current = hierarchy
+            for level in level_stack:
+                current = current.setdefault(level, {})
+            
+            # Si el key tiene un valor asociado, lo añadimos
+            if value is not None:
+                current[key] = value
+            else:
+                current[key] = {}
+
+        with open(file_path, 'r') as file:
+            hierarchy = {}
+            level_stack = []
+
+            for line in file:
+                stripped_line = line.strip()
+
+                if not stripped_line:  # Ignorar líneas vacías
+                    continue
+
+                # Determinar el nivel de indentación
+                indent_level = len(line) - len(line.lstrip())
+
+                # Ajustar el stack de niveles según el nivel de indentación actual
+                while len(level_stack) > 0 and level_stack[-1][1] >= indent_level:
+                    level_stack.pop()
+
+        
+                key = stripped_line
+                add_to_hierarchy(hierarchy, [lvl[0] for lvl in level_stack], key)
+
+                # Añadir la clave actual al nivel stack con su indentación
+                level_stack.append((key, indent_level))
+
+        # Convertir a JSON
+        return json.dumps(hierarchy)
 
     def create_from_form(self, form, current_user) -> DataSet:
         main_author = {
@@ -187,9 +229,9 @@ class DataSetService(BaseService):
     def get_datasets_by_user(self, user_id):
         return db.session.query(DataSet).filter_by(user_id=user_id).all()
 
-    def get_all_datasets(self):
-        return db.session.query(DataSet).all()
-
+    def get_all_published_datasets(self):
+        return db.session.query(DataSet).join(DataSet.ds_meta_data).filter(
+            DSMetaData.dataset_doi.isnot(None)).all()
 
 class AuthorService(BaseService):
     def __init__(self):
