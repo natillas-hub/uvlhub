@@ -61,18 +61,22 @@ def create_dataset():
         if not form.validate_on_submit():
             return jsonify({"message": form.errors}), 400
         
+        try:
+            logger.info("Parsing the UVL files to JSON...")
 
-        logger.info("Parsing the UVL files to JSON...")
-        mergedUVL = []
-        for feature_model in form.feature_models:
-            uvl_filename = feature_model.uvl_filename.data
-            uvl_file_path = 'uploads/temp/' + str(current_user.id) + '/' + str(uvl_filename)
-            splitted_filename = uvl_filename.split('.')
-            aux = '{"' + splitted_filename[0] + '": ' + dataset_service.parse_uvl_to_json(uvl_file_path) + '}'
-            aux = json.loads(aux)
-            mergedUVL.append(aux)
+            mergedUVL = []
+            for feature_model in form.feature_models:
+                uvl_filename = feature_model.uvl_filename.data
+                uvl_file_path = 'uploads/temp/' + str(current_user.id) + '/' + str(uvl_filename)
+                splitted_filename = uvl_filename.split('.')
+                aux = '{"' + splitted_filename[0] + '": ' + dataset_service.parse_uvl_to_json(uvl_file_path) + '}'
+                aux = json.loads(aux)
+                mergedUVL.append(aux)
 
-        logger.info("All UVL files have been parsed to JSON")
+            logger.info("All UVL files have been parsed to JSON")
+        except Exception as exc:
+            logger.exception(f"Exception while parsing UVL to JSON in local {exc}")
+            return jsonify({"Exception while parsing UVL to JSON in local : ": str(exc)}), 400
 
         try:
             logger.info("Creating dataset...")
