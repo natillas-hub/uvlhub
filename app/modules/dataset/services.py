@@ -4,6 +4,7 @@ import hashlib
 import shutil
 from typing import Optional
 import uuid
+import json
 
 from flask import request
 from app import db
@@ -16,7 +17,8 @@ from app.modules.dataset.repositories import (
     DSDownloadRecordRepository,
     DSMetaDataRepository,
     DSViewRecordRepository,
-    DataSetRepository
+    DataSetRepository,
+    DSMetricsRepository
 )
 from app.modules.featuremodel.repositories import FMMetaDataRepository, FeatureModelRepository
 from app.modules.hubfile.repositories import (
@@ -37,6 +39,32 @@ def calculate_checksum_and_size(file_path):
         return hash_md5, file_size
 
 
+def features_counter(uvl_file):
+    features_count = 0
+    inside_features = False
+    keywords = ["mandatory", "or", "optional", "alternative", "{", "}"]
+
+    with open(uvl_file, 'r') as file:
+        for line in file:
+
+            clean_line = line.strip()
+
+            # Buscamos las features
+            if clean_line == "features":
+                inside_features = True
+                continue
+
+            # Paramos al salir de features
+            if inside_features and not line.startswith(" "):
+                break
+
+            if inside_features:
+                if not clean_line.startswith(tuple(keywords)):
+                    features_count += 1
+
+    return features_count
+
+
 class DataSetService(BaseService):
     def __init__(self):
         super().__init__(DataSetRepository())
@@ -49,6 +77,7 @@ class DataSetService(BaseService):
         self.hubfilerepository = HubfileRepository()
         self.dsviewrecord_repostory = DSViewRecordRepository()
         self.hubfileviewrecord_repository = HubfileViewRecordRepository()
+        self.dsmetrics_repository = DSMetricsRepository()
 
     def move_feature_models(self, dataset: DataSet):
         current_user = AuthenticationService().get_authenticated_user()
@@ -93,6 +122,46 @@ class DataSetService(BaseService):
     def total_dataset_views(self) -> int:
         return self.dsviewrecord_repostory.total_dataset_views()
 
+    @staticmethod
+    def parse_uvl_to_json(file_path):
+        def add_to_hierarchy(hierarchy, level_stack, key, value=None):
+            # Navegar por la jerarquía según el nivel de indentación
+            current = hierarchy
+            for level in level_stack:
+                current = current.setdefault(level, {})
+
+            # Si el key tiene un valor asociado, lo añadimos
+            if value is not None:
+                current[key] = value
+            else:
+                current[key] = {}
+
+        with open(file_path, 'r') as file:
+            hierarchy = {}
+            level_stack = []
+
+            for line in file:
+                stripped_line = line.strip()
+
+                if not stripped_line:  # Ignorar líneas vacías
+                    continue
+
+                # Determinar el nivel de indentación
+                indent_level = len(line) - len(line.lstrip())
+
+                # Ajustar el stack de niveles según el nivel de indentación actual
+                while len(level_stack) > 0 and level_stack[-1][1] >= indent_level:
+                    level_stack.pop()
+
+                key = stripped_line
+                add_to_hierarchy(hierarchy, [lvl[0] for lvl in level_stack], key)
+
+                # Añadir la clave actual al nivel stack con su indentación
+                level_stack.append((key, indent_level))
+
+        # Convertir a JSON
+        return json.dumps(hierarchy)
+
     def create_from_form(self, form, current_user) -> DataSet:
         main_author = {
             "name": f"{current_user.profile.surname}, {current_user.profile.name}",
@@ -100,8 +169,21 @@ class DataSetService(BaseService):
             "orcid": current_user.profile.orcid,
         }
         try:
+
+            features = 0
+            for feature_model in form.feature_models:
+                uvl_filename = feature_model.uvl_filename.data
+                uvl_file_path = 'uploads/temp/' + str(current_user.id) + '/' + uvl_filename
+
+                features += features_counter(uvl_file_path)
+
+            dsmetrics = self.dsmetrics_repository.create(
+                number_of_models=len(form.feature_models),
+                number_of_features=features
+            )
+
             logger.info(f"Creating dsmetadata...: {form.get_dsmetadata()}")
-            dsmetadata = self.dsmetadata_repository.create(**form.get_dsmetadata())
+            dsmetadata = self.dsmetadata_repository.create(**form.get_dsmetadata(), ds_metrics_id=dsmetrics.id)
             for author_data in [main_author] + form.get_authors():
                 author = self.author_repository.create(commit=False, ds_meta_data_id=dsmetadata.id, **author_data)
                 dsmetadata.authors.append(author)
@@ -141,11 +223,16 @@ class DataSetService(BaseService):
         domain = os.getenv('DOMAIN', 'localhost')
         return f'http://{domain}/doi/{dataset.ds_meta_data.dataset_doi}'
 
+    def get_deposition_doi(self, dataset: DataSet) -> str:
+        domain = os.getenv('DOMAIN', 'localhost')
+        return f'http://{domain}/fakenodo/{dataset.ds_meta_data.deposition_id}'
+
     def get_datasets_by_user(self, user_id):
         return db.session.query(DataSet).filter_by(user_id=user_id).all()
 
-    def get_all_datasets(self):
-        return db.session.query(DataSet).all()
+    def get_all_published_datasets(self):
+        return db.session.query(DataSet).join(DataSet.ds_meta_data).filter(
+            DSMetaData.dataset_doi.isnot(None)).all()
 
 
 class AuthorService(BaseService):

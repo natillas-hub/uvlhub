@@ -36,7 +36,7 @@ from app.modules.dataset.services import (
     DataSetService,
     DOIMappingService
 )
-from app.modules.zenodo.services import ZenodoService
+from app.modules.fakenodo.services import FakenodoService
 from app.modules.auth.models import User
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 dataset_service = DataSetService()
 author_service = AuthorService()
 dsmetadata_service = DSMetaDataService()
-zenodo_service = ZenodoService()
+fakenodo_service = FakenodoService()
 doi_mapping_service = DOIMappingService()
 ds_view_record_service = DSViewRecordService()
 
@@ -62,6 +62,23 @@ def create_dataset():
             return jsonify({"message": form.errors}), 400
 
         try:
+            logger.info("Parsing the UVL files to JSON...")
+
+            mergedUVL = []
+            for feature_model in form.feature_models:
+                uvl_filename = feature_model.uvl_filename.data
+                uvl_file_path = 'uploads/temp/' + str(current_user.id) + '/' + str(uvl_filename)
+                splitted_filename = uvl_filename.split('.')
+                aux = '{"' + splitted_filename[0] + '": ' + dataset_service.parse_uvl_to_json(uvl_file_path) + '}'
+                aux = json.loads(aux)
+                mergedUVL.append(aux)
+
+            logger.info("All UVL files have been parsed to JSON")
+        except Exception as exc:
+            logger.exception(f"Exception while parsing UVL to JSON in local {exc}")
+            return jsonify({"Exception while parsing UVL to JSON in local : ": str(exc)}), 400
+
+        try:
             logger.info("Creating dataset...")
             dataset = dataset_service.create_from_form(form=form, current_user=current_user)
             logger.info(f"Created dataset: {dataset}")
@@ -70,37 +87,10 @@ def create_dataset():
             logger.exception(f"Exception while create dataset data in local {exc}")
             return jsonify({"Exception while create dataset data in local: ": str(exc)}), 400
 
-        # send dataset as deposition to Zenodo
-        data = {}
-        try:
-            zenodo_response_json = zenodo_service.create_new_deposition(dataset)
-            response_data = json.dumps(zenodo_response_json)
-            data = json.loads(response_data)
-        except Exception as exc:
-            data = {}
-            zenodo_response_json = {}
-            logger.exception(f"Exception while create dataset data in Zenodo {exc}")
-
-        if data.get("conceptrecid"):
-            deposition_id = data.get("id")
-
-            # update dataset with deposition id in Zenodo
-            dataset_service.update_dsmetadata(dataset.ds_meta_data_id, deposition_id=deposition_id)
-
-            try:
-                # iterate for each feature model (one feature model = one request to Zenodo)
-                for feature_model in dataset.feature_models:
-                    zenodo_service.upload_file(dataset, deposition_id, feature_model)
-
-                # publish deposition
-                zenodo_service.publish_deposition(deposition_id)
-
-                # update DOI
-                deposition_doi = zenodo_service.get_doi(deposition_id)
-                dataset_service.update_dsmetadata(dataset.ds_meta_data_id, dataset_doi=deposition_doi)
-            except Exception as e:
-                msg = f"it has not been possible upload feature models in Zenodo and update the DOI: {e}"
-                return jsonify({"message": msg}), 200
+        deposition = fakenodo_service.create_new_deposition(dataset, mergedUVL)
+        dataset_service.update_dsmetadata(
+            dataset.ds_meta_data_id, deposition_id=deposition.id, dataset_doi=f'10.1234/dataset{dataset.id}'
+        )
 
         # Delete temp folder
         file_path = current_user.temp_folder()
@@ -119,8 +109,7 @@ def list_dataset():
     return render_template(
         "dataset/list_datasets.html",
         datasets=dataset_service.get_synchronized(current_user.id),
-        local_datasets=dataset_service.get_unsynchronized(current_user.id),
-        total_size_kb=sum(dataset.file_size for dataset in dataset_service.get_synchronized(current_user.id)),
+        local_datasets=dataset_service.get_unsynchronized(current_user.id)
     )
 
 
@@ -388,7 +377,7 @@ def download_all():
         }), 400
 
     # Obtener datasets
-    datasets = dataset_service.get_all_datasets()
+    datasets = dataset_service.get_all_published_datasets()
 
     if not datasets:
         return jsonify({
