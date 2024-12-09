@@ -36,7 +36,31 @@ def calculate_checksum_and_size(file_path):
         content = file.read()
         hash_md5 = hashlib.md5(content).hexdigest()
         return hash_md5, file_size
+    
+def features_counter(uvl_file):
+    features_count = 0
+    inside_features = False
+    keywords = [ "mandatory", "or", "optional", "alternative", "{", "}"]
 
+    with open(uvl_file, 'r') as file:
+        for line in file:
+
+            clean_line = line.strip()
+
+            # Buscamos las features
+            if clean_line == "features":
+                inside_features = True
+                continue
+
+            # Paramos al salir de features
+            if inside_features and not line.startswith(" "):
+                break
+
+            if inside_features:
+                if not clean_line.startswith(tuple(keywords)):
+                    features_count += 1
+
+    return features_count
 
 class DataSetService(BaseService):
     def __init__(self):
@@ -103,9 +127,16 @@ class DataSetService(BaseService):
         }
         try:
 
+            features = 0
+            for feature_model in form.feature_models:
+                uvl_filename = feature_model.uvl_filename.data
+                uvl_file_path = 'uploads/temp/' + str(current_user.id) + '/' + uvl_filename
+
+                features += features_counter(uvl_file_path)
+
             dsmetrics = self.dsmetrics_repository.create(
                 number_of_models=len(form.feature_models),
-                number_of_features=0
+                number_of_features=features
             )
 
             logger.info(f"Creating dsmetadata...: {form.get_dsmetadata()}")
