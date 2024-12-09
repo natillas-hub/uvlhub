@@ -4,7 +4,7 @@ from app import db
 from app.modules.dataset.models import DataSet, DSMetrics, DSMetaData, PublicationType
 from app.modules.featuremodel.models import FeatureModel
 from app.modules.hubfile.models import Hubfile
-from app.modules.dataset.services import *
+from app.modules.dataset.services import DataSetService, features_counter
 import json
 import os
 

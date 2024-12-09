@@ -60,7 +60,7 @@ def create_dataset():
 
         if not form.validate_on_submit():
             return jsonify({"message": form.errors}), 400
-        
+
         try:
             logger.info("Parsing the UVL files to JSON...")
 
@@ -87,7 +87,7 @@ def create_dataset():
             logger.exception(f"Exception while create dataset data in local {exc}")
             return jsonify({"Exception while create dataset data in local: ": str(exc)}), 400
 
-        deposition = fakenodo_service.create_new_deposition(dataset,mergedUVL)
+        deposition = fakenodo_service.create_new_deposition(dataset, mergedUVL)
         dataset_service.update_dsmetadata(
             dataset.ds_meta_data_id, deposition_id=deposition.id, dataset_doi=f'10.1234/dataset{dataset.id}'
         )

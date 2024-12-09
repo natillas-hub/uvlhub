@@ -37,11 +37,12 @@ def calculate_checksum_and_size(file_path):
         content = file.read()
         hash_md5 = hashlib.md5(content).hexdigest()
         return hash_md5, file_size
-    
+
+
 def features_counter(uvl_file):
     features_count = 0
     inside_features = False
-    keywords = [ "mandatory", "or", "optional", "alternative", "{", "}"]
+    keywords = ["mandatory", "or", "optional", "alternative", "{", "}"]
 
     with open(uvl_file, 'r') as file:
         for line in file:
@@ -62,6 +63,7 @@ def features_counter(uvl_file):
                     features_count += 1
 
     return features_count
+
 
 class DataSetService(BaseService):
     def __init__(self):
@@ -119,7 +121,7 @@ class DataSetService(BaseService):
 
     def total_dataset_views(self) -> int:
         return self.dsviewrecord_repostory.total_dataset_views()
-    
+
     @staticmethod
     def parse_uvl_to_json(file_path):
         def add_to_hierarchy(hierarchy, level_stack, key, value=None):
@@ -127,7 +129,7 @@ class DataSetService(BaseService):
             current = hierarchy
             for level in level_stack:
                 current = current.setdefault(level, {})
-            
+
             # Si el key tiene un valor asociado, lo añadimos
             if value is not None:
                 current[key] = value
@@ -151,7 +153,6 @@ class DataSetService(BaseService):
                 while len(level_stack) > 0 and level_stack[-1][1] >= indent_level:
                     level_stack.pop()
 
-        
                 key = stripped_line
                 add_to_hierarchy(hierarchy, [lvl[0] for lvl in level_stack], key)
 
@@ -232,6 +233,7 @@ class DataSetService(BaseService):
     def get_all_published_datasets(self):
         return db.session.query(DataSet).join(DataSet.ds_meta_data).filter(
             DSMetaData.dataset_doi.isnot(None)).all()
+
 
 class AuthorService(BaseService):
     def __init__(self):
