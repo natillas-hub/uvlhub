@@ -228,6 +228,104 @@ var currentId = 0;
 
 
             });
+            document.getElementById('upload_button_draft').addEventListener('click', function () {
+
+                clean_upload_errors();
+                show_loading();
+
+                // check title and description
+                let check = check_title_and_description();
+
+                if (check) {
+                    // process data form
+                    const formData = {};
+
+                    ["basic_info_form", "uploaded_models_form"].forEach((formId) => {
+                        const form = document.getElementById(formId);
+                        const inputs = form.querySelectorAll('input, select, textarea');
+                        inputs.forEach(input => {
+                            if (input.name) {
+                                formData[input.name] = formData[input.name] || [];
+                                formData[input.name].push(input.value);
+                            }
+                        });
+                    });
+
+                    let formDataJson = JSON.stringify(formData);
+                    console.log(formDataJson);
+
+                    const csrfToken = document.getElementById('csrf_token').value;
+                    const formUploadData = new FormData();
+                    formUploadData.append('csrf_token', csrfToken);
+
+                    for (let key in formData) {
+                        if (formData.hasOwnProperty(key)) {
+                            formUploadData.set(key, formData[key]);
+                        }
+                    }
+
+                    let checked_orcid = true;
+                    if (Array.isArray(formData.author_orcid)) {
+                        for (let orcid of formData.author_orcid) {
+                            orcid = orcid.trim();
+                            if (orcid !== '' && !isValidOrcid(orcid)) {
+                                hide_loading();
+                                write_upload_error("ORCID value does not conform to valid format: " + orcid);
+                                checked_orcid = false;
+                                break;
+                            }
+                        }
+                    }
+
+
+                    let checked_name = true;
+                    if (Array.isArray(formData.author_name)) {
+                        for (let name of formData.author_name) {
+                            name = name.trim();
+                            if (name === '') {
+                                hide_loading();
+                                write_upload_error("The author's name cannot be empty");
+                                checked_name = false;
+                                break;
+                            }
+                        }
+                    }
+
+
+                    if (checked_orcid && checked_name) {
+                        fetch('/dataset/upload-draft', {
+                            method: 'POST',
+                            body: formUploadData
+                        })
+                            .then(response => {
+                                if (response.ok) {
+                                    console.log('Dataset sent successfully');
+                                    response.json().then(data => {
+                                        console.log(data.message);
+                                        window.location.href = "/dataset/list";
+                                    });
+                                } else {
+                                    response.json().then(data => {
+                                        console.error('Error: ' + data.message);
+                                        hide_loading();
+
+                                        write_upload_error(data.message);
+
+                                    });
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error in POST request:', error);
+                            });
+                    }
+
+
+                } else {
+                    hide_loading();
+                }
+
+
+            });
         };
 
 
