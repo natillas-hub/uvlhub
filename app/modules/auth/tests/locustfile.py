@@ -51,8 +51,37 @@ class LoginBehavior(TaskSet):
             print(f"Login failed: {response.status_code}")
 
 
+class ChangePassword(TaskSet):
+    def on_start(self):
+        self.change_password()
+
+    def ensure_logged_out(self):
+        response = self.client.get("/logout")
+        if response.status_code != 200:
+            print(f"Logout failed or no active session: {response.status_code}")
+
+    @task
+    def change_password(self):
+        response = self.client.get("/reset_password")
+        if response.status_code != 200 or "Reset Your Password" not in response.text:
+            print("Already logged in or unexpected response, redirecting to logout")
+            self.ensure_logged_out()
+            response = self.client.get("/reset_password")
+
+        csrf_token = get_csrf_token(response)
+
+        response = self.client.post("/reset_password", data={
+            "email": 'user1@example.com',
+            "answer1": 'Fluffy',
+            "answer2": 'Mr. Smith',
+            "answer3": 'Soccer',
+            "new_password": '1234',
+            "csrf_token": csrf_token
+        })
+
+
 class AuthUser(HttpUser):
-    tasks = [SignupBehavior, LoginBehavior]
+    tasks = [SignupBehavior, LoginBehavior, ChangePassword]
     min_wait = 5000
     max_wait = 9000
     host = get_host_for_locust_testing()

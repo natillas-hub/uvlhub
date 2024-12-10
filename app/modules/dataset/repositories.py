@@ -11,7 +11,8 @@ from app.modules.dataset.models import (
     DSDownloadRecord,
     DSMetaData,
     DSViewRecord,
-    DataSet
+    DataSet,
+    DSMetrics
 )
 from core.repositories.BaseRepository import BaseRepository
 
@@ -121,3 +122,8 @@ class DOIMappingRepository(BaseRepository):
 
     def get_new_doi(self, old_doi: str) -> str:
         return self.model.query.filter_by(dataset_doi_old=old_doi).first()
+
+
+class DSMetricsRepository(BaseRepository):
+    def __init__(self):
+        super().__init__(DSMetrics)

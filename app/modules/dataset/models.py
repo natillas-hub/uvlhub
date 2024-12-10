@@ -108,6 +108,10 @@ class DataSet(db.Model):
         from app.modules.dataset.services import DataSetService
         return DataSetService().get_uvlhub_doi(self)
 
+    def get_deposition_doi(self):
+        from app.modules.dataset.services import DataSetService
+        return DataSetService().get_deposition_doi(self)
+
     def to_dict(self):
         return {
             'title': self.ds_meta_data.title,

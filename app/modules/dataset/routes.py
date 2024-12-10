@@ -8,7 +8,6 @@ from datetime import datetime, timezone
 from zipfile import ZipFile
 
 from app.modules.hubfile.services import HubfileService
-from app.modules.auth.models import User
 from flamapy.metamodels.fm_metamodel.transformations import UVLReader, GlencoeWriter, SPLOTWriter
 from flamapy.metamodels.pysat_metamodel.transformations import FmToPysat, DimacsWriter
 
@@ -37,7 +36,8 @@ from app.modules.dataset.services import (
     DataSetService,
     DOIMappingService
 )
-from app.modules.zenodo.services import ZenodoService
+from app.modules.fakenodo.services import FakenodoService
+from app.modules.auth.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 dataset_service = DataSetService()
 author_service = AuthorService()
 dsmetadata_service = DSMetaDataService()
-zenodo_service = ZenodoService()
+fakenodo_service = FakenodoService()
 doi_mapping_service = DOIMappingService()
 ds_view_record_service = DSViewRecordService()
 
@@ -62,6 +62,23 @@ def create_dataset():
             return jsonify({"message": form.errors}), 400
 
         try:
+            logger.info("Parsing the UVL files to JSON...")
+
+            mergedUVL = []
+            for feature_model in form.feature_models:
+                uvl_filename = feature_model.uvl_filename.data
+                uvl_file_path = 'uploads/temp/' + str(current_user.id) + '/' + str(uvl_filename)
+                splitted_filename = uvl_filename.split('.')
+                aux = '{"' + splitted_filename[0] + '": ' + dataset_service.parse_uvl_to_json(uvl_file_path) + '}'
+                aux = json.loads(aux)
+                mergedUVL.append(aux)
+
+            logger.info("All UVL files have been parsed to JSON")
+        except Exception as exc:
+            logger.exception(f"Exception while parsing UVL to JSON in local {exc}")
+            return jsonify({"Exception while parsing UVL to JSON in local : ": str(exc)}), 400
+
+        try:
             logger.info("Creating dataset...")
             dataset = dataset_service.create_from_form(form=form, current_user=current_user)
             logger.info(f"Created dataset: {dataset}")
@@ -70,37 +87,10 @@ def create_dataset():
             logger.exception(f"Exception while create dataset data in local {exc}")
             return jsonify({"Exception while create dataset data in local: ": str(exc)}), 400
 
-        # send dataset as deposition to Zenodo
-        data = {}
-        try:
-            zenodo_response_json = zenodo_service.create_new_deposition(dataset)
-            response_data = json.dumps(zenodo_response_json)
-            data = json.loads(response_data)
-        except Exception as exc:
-            data = {}
-            zenodo_response_json = {}
-            logger.exception(f"Exception while create dataset data in Zenodo {exc}")
-
-        if data.get("conceptrecid"):
-            deposition_id = data.get("id")
-
-            # update dataset with deposition id in Zenodo
-            dataset_service.update_dsmetadata(dataset.ds_meta_data_id, deposition_id=deposition_id)
-
-            try:
-                # iterate for each feature model (one feature model = one request to Zenodo)
-                for feature_model in dataset.feature_models:
-                    zenodo_service.upload_file(dataset, deposition_id, feature_model)
-
-                # publish deposition
-                zenodo_service.publish_deposition(deposition_id)
-
-                # update DOI
-                deposition_doi = zenodo_service.get_doi(deposition_id)
-                dataset_service.update_dsmetadata(dataset.ds_meta_data_id, dataset_doi=deposition_doi)
-            except Exception as e:
-                msg = f"it has not been possible upload feature models in Zenodo and update the DOI: {e}"
-                return jsonify({"message": msg}), 200
+        deposition = fakenodo_service.create_new_deposition(dataset, mergedUVL)
+        dataset_service.update_dsmetadata(
+            dataset.ds_meta_data_id, deposition_id=deposition.id, dataset_doi=f'10.1234/dataset{dataset.id}'
+        )
 
         # Delete temp folder
         file_path = current_user.temp_folder()
@@ -119,7 +109,7 @@ def list_dataset():
     return render_template(
         "dataset/list_datasets.html",
         datasets=dataset_service.get_synchronized(current_user.id),
-        local_datasets=dataset_service.get_unsynchronized(current_user.id),
+        local_datasets=dataset_service.get_unsynchronized(current_user.id)
     )
 
 
@@ -373,6 +363,111 @@ def get_unsynchronized_dataset(dataset_id):
     return render_template("dataset/view_dataset.html", dataset=dataset)
 
 
+# feat/4
+@dataset_bp.route("/dataset/download_all", methods=["GET"])
+def download_all():
+    # Validar formato
+    format = request.args.get("format")
+    valid_formats = ["DIMACS", "GLENCOE", "SPLOT", "UVL"]
+
+    if format not in valid_formats:
+        return jsonify({
+            "error": "Formato de descarga no soportado",
+            "valid_formats": valid_formats
+        }), 400
+
+    # Obtener datasets
+    datasets = dataset_service.get_all_published_datasets()
+
+    if not datasets:
+        return jsonify({
+            "error": "No hay datasets disponibles para descargar"
+        }), 404
+
+    # Crear directorio temporal
+    temp_dir = tempfile.mkdtemp()
+    zip_path = os.path.join(temp_dir, "all_datasets.zip")
+
+    try:
+        with ZipFile(zip_path, "w") as zipf:
+            files_added = False
+            for dataset in datasets:
+                if not dataset.files():
+                    continue
+                dataset_files_processed = False
+                for file in dataset.files():
+                    try:
+                        file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
+                        full_path = os.path.join(file_path, file.name)
+                        if not os.path.exists(full_path):
+                            logger.warning(f"File not found: {full_path}")
+                            continue
+
+                        # Leer y transformar contenido
+                        try:
+                            if format == "DIMACS":
+                                transformed_file_path, original_filename = transform_to_dimacs(file.id)
+                                new_filename = f"{original_filename}_cnf.txt"
+                            elif format == "GLENCOE":
+                                transformed_file_path, original_filename = transform_to_glencoe(file.id)
+                                new_filename = f"{original_filename}_glencoe.txt"
+                            elif format == "SPLOT":
+                                transformed_file_path, original_filename = transform_to_splot(file.id)
+                                new_filename = f"{original_filename}_splot.txt"
+                            else:  # UVL
+                                transformed_file_path = full_path
+                                new_filename = file.name
+
+                            with open(transformed_file_path, "r") as transformed_file:
+                                content = transformed_file.read()
+
+                            # Añadir al ZIP
+                            zip_path = os.path.join(f"dataset_{dataset.id}", new_filename)
+                            with zipf.open(zip_path, "w") as zipfile:
+                                zipfile.write(content.encode())
+                                files_added = True
+                                dataset_files_processed = True
+
+                        except Exception as e:
+                            logger.error(f"Error processing file {file.name}: {str(e)}")
+                            continue
+
+                    except Exception as e:
+                        logger.error(f"Error with file in dataset {dataset.id}: {str(e)}")
+                        continue
+
+                if not dataset_files_processed:
+                    logger.warning(f"No files were processed for dataset {dataset.id}")
+
+            # Si no se añadió ningún archivo, crear un ZIP vacío pero válido
+            if not files_added:
+                # Añadir un archivo README al ZIP
+                with zipf.open("README.txt", "w") as readme:
+                    readme.write(b"No files were available for download in the selected format.")
+
+        # Enviar ZIP
+        return send_from_directory(
+            temp_dir,
+            "all_datasets.zip",
+            as_attachment=True,
+            mimetype="application/zip"
+        )
+
+    except Exception as e:
+        logger.error(f"Error creating ZIP file: {str(e)}")
+        return jsonify({
+            "error": "Error al crear el archivo ZIP"
+        }), 500
+
+    finally:
+        # Limpiar archivos temporales
+        try:
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+        except Exception as e:
+            logger.error(f"Error cleaning temporary files: {str(e)}")
+
+
 def transform_to_dimacs(file_id):
     temp_file = tempfile.NamedTemporaryFile(suffix='.dimacs', delete=False)
     try:
@@ -412,8 +507,12 @@ def transform_to_glencoe(file_id):
         pass
 
 
-@dataset_bp.route("/dataset/user/<int:user_id>")  # Method get?
+@dataset_bp.route("/user/<int:user_id>/datasets")
 def user_datasets(user_id):
     user = User.query.get_or_404(user_id)
     datasets = dataset_service.get_datasets_by_user(user_id)
-    return render_template('dataset/user_datasets.html', user=user, datasets=datasets)
+    return render_template(
+        "dataset/user_datasets.html",
+        datasets=datasets,
+        user=user
+    )
