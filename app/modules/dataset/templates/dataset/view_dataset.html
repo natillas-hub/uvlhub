@@ -225,6 +225,14 @@
                 </button>
 
             </div>
+            {% if dataset.ds_meta_data.dataset_doi %}
+           
+            {% else %}
+            <a href="/dataset/publish/{{ dataset.id }}" class="btn btn-primary mt-3" style="border-radius: 5px;">
+                <i data-feather="upload" class="center-button-icon"></i>
+                Publish dataset
+            </a>
+            {% endif %}
 
         </div>
 
