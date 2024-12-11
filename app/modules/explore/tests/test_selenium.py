@@ -253,3 +253,14 @@ def test_explore_complex_workflow():
 
     finally:
         close_driver(driver)
+
+
+# Call all test functions
+test_explore_basic_search()
+test_explore_publication_types()
+test_explore_sorting()
+test_explore_feature_limits()
+test_explore_product_limits()
+test_explore_author_search()
+test_explore_combined_filters()
+test_explore_complex_workflow()
