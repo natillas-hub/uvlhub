@@ -1,12 +1,15 @@
 import pytest
-
 from app import db
+from app.modules.conftest import login
 from app.modules.dataset.models import DataSet, DSMetrics, DSMetaData, PublicationType
 from app.modules.featuremodel.models import FeatureModel
 from app.modules.hubfile.models import Hubfile
+from app.modules.auth.models import User
+from app.modules.profile.models import UserProfile
 from app.modules.dataset.services import DataSetService, features_counter
 import json
 import os
+from flask import url_for
 
 
 @pytest.fixture(scope="module")
@@ -63,6 +66,14 @@ def test_client(test_client):
             feature_model_id=1
         )
         db.session.add_all([hubfile1, hubfile2, hubfile3])
+        db.session.commit()
+
+        user_test = User(email='user@example.com', password='test1234')
+        db.session.add(user_test)
+        db.session.commit()
+
+        profile = UserProfile(user_id=user_test.id, name="Name", surname="Surname")
+        db.session.add(profile)
         db.session.commit()
 
     yield test_client
@@ -504,4 +515,40 @@ OtherSection
 
     # Limpieza
     os.remove(file_path)
-    os.rmdir(temp_dir)
+
+
+def test_create_dataset_draft_missing_title(test_client):
+    """
+    Test the POST method for the create_dataset_draft route when the title is missing.
+    """
+    login(test_client, "user@example.com", "test1234")
+    form_data = {
+        'title': '',
+        'description': 'Test Description',
+        'publication_type': 'JOURNAL_ARTICLE',
+        'publication_doi': '10.1234/test.doi',
+        'dataset_doi': '10.1234/dataset.doi',
+        'tags': 'test, dataset, example'
+    }
+    response = test_client.post(url_for('dataset.create_dataset_draft'), data=form_data)
+    assert response.status_code == 400
+    assert "This field is required." in response.json["message"]["title"]
+
+
+def test_create_dataset_draft_post_exception(test_client):
+    """
+    Test the POST method for the create_dataset_draft route when an exception occurs.
+    """
+
+    login(test_client, "user@example.com", "test1234")
+
+    form_data = {
+        'title': 'Test Dataset',
+        'description': 'Test Description',
+        'publication_type': 'JOURNAL_ARTICLE',
+        'publication_doi': '10.1234/test.doi',
+        'dataset_doi': '10.1234/dataset.doi',
+        'tags': 'test, dataset, example'
+    }
+    response = test_client.post(url_for('dataset.create_dataset_draft'), data=form_data)
+    assert response.status_code == 400
