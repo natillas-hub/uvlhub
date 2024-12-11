@@ -4,7 +4,6 @@ import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium import webdriver
 
 from core.environment.host import get_host_for_selenium_testing
 from core.selenium.common import initialize_driver, close_driver
@@ -135,66 +134,92 @@ def test_upload_dataset():
 
 
 # Tests de Selenium de la feature Download All
+def test_download_all_uvl():
+    driver = initialize_driver()
+
+    try:
+        host = get_host_for_selenium_testing()
+        driver.get(f'{host}/')
+        driver.set_window_size(1920, 1080)
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(0.5)
+        driver.find_element(By.CSS_SELECTOR, ".btn-primary:nth-child(1)").click()
+        time.sleep(1)
+        driver.find_element(By.LINK_TEXT, "Download all in UVL").click()
+        time.sleep(3)
+        print("Test download all uvl passed!")
+
+    except NoSuchElementException as e:
+        raise AssertionError(f"Test download all uvl failed: {e}")
+
+    finally:
+        close_driver(driver)
 
 
-class DownloadAllInDimacs:
-    def setup_method(self, method):
-        self.driver = webdriver.Firefox()
-        self.vars = {}
+def test_download_all_glencoe():
+    driver = initialize_driver()
 
-    def teardown_method(self, method):
-        self.driver.quit()
+    try:
+        host = get_host_for_selenium_testing()
+        driver.get(f'{host}/')
+        driver.set_window_size(1920, 1080)
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(0.5)
+        driver.find_element(By.CSS_SELECTOR, ".btn-primary:nth-child(1)").click()
+        time.sleep(1)
+        driver.find_element(By.LINK_TEXT, "Download all in GLENCOE").click()
+        time.sleep(3)
+        print("Test download all glencoe passed!")
 
-    def download_all_dimacs(self):
-        self.driver.get("http://localhost:5000/")
-        self.driver.set_window_size(1101, 527)
-        self.driver.find_element(By.CSS_SELECTOR, ".btn-primary:nth-child(1)").click()
-        self.driver.find_element(By.LINK_TEXT, "Download all in DIMACS").click()
+    except NoSuchElementException as e:
+        raise AssertionError(f"Test download all glencoe failed: {e}")
 
-
-class DownloadAllInGlencoe():
-    def setup_method(self, method):
-        self.driver = webdriver.Firefox()
-        self.vars = {}
-
-    def teardown_method(self, method):
-        self.driver.quit()
-
-    def download_all_glencoe(self):
-        self.driver.get("http://localhost:5000/")
-        self.driver.set_window_size(1101, 527)
-        self.driver.find_element(By.CSS_SELECTOR, ".btn-primary:nth-child(1)").click()
-        self.driver.find_element(By.LINK_TEXT, "Download all in GLENCOE").click()
+    finally:
+        close_driver(driver)
 
 
-class DownloadlAllInSplot():
-    def setup_method(self, method):
-        self.driver = webdriver.Firefox()
-        self.vars = {}
+def test_download_all_dimacs():
+    driver = initialize_driver()
 
-    def teardown_method(self, method):
-        self.driver.quit()
+    try:
+        host = get_host_for_selenium_testing()
+        driver.get(f'{host}/')
+        driver.set_window_size(1920, 1080)
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(0.5)
+        driver.find_element(By.CSS_SELECTOR, ".btn-primary:nth-child(1)").click()
+        time.sleep(1)
+        driver.find_element(By.LINK_TEXT, "Download all in DIMACS").click()
+        time.sleep(3)
+        print("Test download all DIMACS passed!")
 
-    def download_all_splot(self):
-        self.driver.get("http://localhost:5000/")
-        self.driver.set_window_size(1101, 527)
-        self.driver.find_element(By.CSS_SELECTOR, ".btn-primary:nth-child(1)").click()
-        self.driver.find_element(By.LINK_TEXT, "Download all in SPLOT").click()
+    except NoSuchElementException as e:
+        raise AssertionError(f"Test download all DIMACSfailed: {e}")
+
+    finally:
+        close_driver(driver)
 
 
-class DownloadAllInUvl():
-    def setup_method(self, method):
-        self.driver = webdriver.Firefox()
-        self.vars = {}
+def test_download_all_splot():
+    driver = initialize_driver()
 
-    def teardown_method(self, method):
-        self.driver.quit()
+    try:
+        host = get_host_for_selenium_testing()
+        driver.get(f'{host}/')
+        driver.set_window_size(1920, 1080)
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(0.5)
+        driver.find_element(By.CSS_SELECTOR, ".btn-primary:nth-child(1)").click()
+        time.sleep(1)
+        driver.find_element(By.LINK_TEXT, "Download all in SPLOT").click()
+        time.sleep(3)
+        print("Test download all splot passed!")
 
-    def download_all_uvl(self):
-        self.driver.get("http://localhost:5000/")
-        self.driver.set_window_size(1101, 527)
-        self.driver.find_element(By.CSS_SELECTOR, ".btn-primary:nth-child(1)").click()
-        self.driver.find_element(By.LINK_TEXT, "Download all in UVL").click()
+    except NoSuchElementException as e:
+        raise AssertionError(f"Test download all uvl failed: {e}")
+
+    finally:
+        close_driver(driver)
 
 
 def test_download_uvl():
@@ -278,6 +303,10 @@ def test_download_splot():
 
 
 # Call all test functions
+test_download_all_uvl()
+test_download_all_dimacs()
+test_download_all_glencoe()
+test_download_all_splot()
 test_download_uvl()
 test_download_glecone()
 test_download_dimacs()
