@@ -76,6 +76,47 @@ def test_client(test_client):
         db.session.add(profile)
         db.session.commit()
 
+        ds_metrics_test_unsync = DSMetrics(
+            number_of_models="3",
+            number_of_features="10"
+        )
+        ds_meta_data_test_unsync = DSMetaData(
+            title="Unsynchronized Dataset Title",
+            description="This is an unsynchronized dataset description.",
+            publication_type=PublicationType.JOURNAL_ARTICLE,
+            publication_doi="10.5678/unsync.doi",
+            tags="unsync, dataset, example",
+            ds_metrics=ds_metrics_test_unsync
+        )
+        db.session.add_all([ds_metrics_test_unsync, ds_meta_data_test_unsync])
+
+        dataset_test_unsync = DataSet(
+            user_id=2,
+            ds_meta_data_id=2
+        )
+        db.session.add(dataset_test_unsync)
+
+        feature_model_test_unsync = FeatureModel(
+            data_set_id=2
+        )
+        db.session.add(feature_model_test_unsync)
+        db.session.commit()
+
+        hubfile1_unsync = Hubfile(
+            name="unsync_file1.uvl",
+            checksum="xyz123",
+            size=512,
+            feature_model_id=2
+        )
+        hubfile2_unsync = Hubfile(
+            name="unsync_file2.uvl",
+            checksum="uvw456",
+            size=1024,
+            feature_model_id=2
+        )
+        db.session.add_all([hubfile1_unsync, hubfile2_unsync])
+        db.session.commit()
+
     yield test_client
 
 
@@ -134,7 +175,7 @@ def test_user_datasets_multiple_users(test_client):
     Verifica que no se mezclan datasets entre usuarios diferentes.
     """
     dataset_service = DataSetService()
-    user_id = 2
+    user_id = 3
 
     # No hay datasets creados para user_id=2 en los datos del test_client
     datasets = dataset_service.get_datasets_by_user(user_id)
@@ -552,3 +593,19 @@ def test_create_dataset_draft_post_exception(test_client):
     }
     response = test_client.post(url_for('dataset.create_dataset_draft'), data=form_data)
     assert response.status_code == 400
+
+
+def test_get_draft_dataset(test_client):
+    # Create a user and log in
+
+    login(test_client, "user@exmplae.com", "test1234")
+
+    # Make a GET request to the unsynchronized dataset route
+    response = test_client.get('/dataset/unsynchronized/2/')
+
+    # Check if the response status code is 200 (OK)
+    assert response.status_code == 200
+
+    # Check if the response contains the expected content
+    assert b"Unsynchronized Dataset Title" in response.data
+    assert b"This is an unsynchronized dataset description." in response.data
