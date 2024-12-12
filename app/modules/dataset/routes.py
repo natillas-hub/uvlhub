@@ -105,7 +105,7 @@ def create_dataset():
 
 @dataset_bp.route("/dataset/edit/<int:dataset_id>", methods=["GET", "POST"])
 @login_required
-def update_dataset(dataset_id):
+def edit_dataset(dataset_id):
     form = DataSetFormUpdate()
     dataset = dataset_service.get_or_404(dataset_id)
 
@@ -129,9 +129,9 @@ def update_dataset(dataset_id):
             )
             return redirect(url_for('dataset.list_dataset'))
         else:
-            return render_template("dataset/edit.html", form=new_form, dataset=dataset)
+            return render_template("dataset/edit_dataset.html", form=new_form, dataset=dataset)
 
-    return render_template("dataset/edit.html", form=form, dataset=dataset)
+    return render_template("dataset/edit_dataset.html", form=form, dataset=dataset)
 
 
 @dataset_bp.route("/dataset/upload-draft", methods=["GET", "POST"])
