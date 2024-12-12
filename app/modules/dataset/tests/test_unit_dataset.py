@@ -76,7 +76,7 @@ def test_client(test_client):
         profile = UserProfile(user_id=user_test.id, name="Name", surname="Surname")
         db.session.add(profile)
         db.session.commit()
-        
+
         user_test2 = User(email='user2@example.com', password='test1234')
         db.session.add(user_test2)
         db.session.commit()
@@ -596,7 +596,7 @@ def test_create_dataset_draft_missing_title(test_client):
     response = test_client.post(url_for('dataset.create_dataset_draft'), data=form_data)
     logout(test_client)
     assert response.status_code == 400
-    
+
     # Verifica que le falta el titulo
     assert "This field is required." in response.json["message"]["title"]
 
@@ -604,7 +604,7 @@ def test_create_dataset_draft_missing_title(test_client):
 def test_create_dataset_draft_post_exception(test_client):
 
     login(test_client, "user@example.com", "test1234")
-    
+
     # Form sin archivo
     form_data = {
         'title': 'Test Dataset',
@@ -616,7 +616,7 @@ def test_create_dataset_draft_post_exception(test_client):
     }
     response = test_client.post(url_for('dataset.create_dataset_draft'), data=form_data)
     logout(test_client)
-    
+
     # Verifica que no se ha subido ningún archivo
     assert response.status_code == 400
 
@@ -624,7 +624,7 @@ def test_create_dataset_draft_post_exception(test_client):
 def test_get_draft_dataset(test_client):
 
     login(test_client, "user@example.com", "test1234")
-    
+
     # Get de un dataset en stagin area
     response = test_client.get('/dataset/unsynchronized/2/')
 
@@ -633,8 +633,119 @@ def test_get_draft_dataset(test_client):
     assert response.status_code == 200
 
 
+def test_no_login_edit_draft(test_client):
+
+    login(test_client, "user@example.com", "test1234")
+    logout(test_client)
+    # Get edit page without login
+    response = test_client.get('dataset/edit/2')
+
+    assert response.status_code == 302
+
+
+def test_edit_other_user_draft(test_client):
+    form_data = {
+        'title': 'title',
+        'desc': 'Test Description',
+        'publication_type': PublicationType.JOURNAL_ARTICLE.value,
+        'publication_doi': 'https://prueba.com',
+        'tags': 'test, dataset, example'
+    }
+
+    login(test_client, "user2@example.com", "test1234")
+
+    response = test_client.post('dataset/edit/2', data=form_data)
+
+    logout(test_client)
+
+    assert response.status_code == 400
+
+
+def test_edit_published_dataset(test_client):
+
+    login(test_client, "user2@example.com", "test1234")
+
+    response = test_client.post('dataset/edit/1')
+
+    logout(test_client)
+
+    assert response.status_code == 400
+
+
+def test_edit_draft_empty_title(test_client):
+    form_data = {
+        'title': None,
+        'desc': 'Test Description',
+        'publication_type': PublicationType.JOURNAL_ARTICLE.value,
+        'publication_doi': 'https://prueba.com',
+        'tags': 'test, dataset, example'
+    }
+    login(test_client, "user@example.com", "test1234")
+
+    response = test_client.post('dataset/edit/2', data=form_data)
+    logout(test_client)
+    assert response.status_code == 400
+
+
+def test_edit_draft_empty_description(test_client):
+    form_data = {
+        'title': 'Test Dataset',
+        'desc': '',
+        'publication_type': PublicationType.JOURNAL_ARTICLE.value,
+        'publication_doi': 'http://prueba.com',
+        'tags': 'test, dataset, example'
+    }
+    login(test_client, "user@example.com", "test1234")
+
+    response = test_client.post('dataset/edit/2', data=form_data, follow_redirects=True)
+    logout(test_client)
+    assert response.status_code == 400
+
+
+def test_edit_draft_bad_doi(test_client):
+    form_data = {
+        'title': 'Test Dataset',
+        'desc': 'Test Description',
+        'publication_type': PublicationType.JOURNAL_ARTICLE.value,
+        'publication_doi': 'hola',
+        'tags': 'test, dataset, example'
+    }
+    login(test_client, "user@example.com", "test1234")
+
+    response = test_client.post('dataset/edit/2', data=form_data, follow_redirects=True)
+    logout(test_client)
+    assert response.status_code == 400
+
+
+def test_edit_draft(test_client):
+    form_data = {
+        'title': 'title',
+        'desc': 'Test Description',
+        'publication_type': PublicationType.JOURNAL_ARTICLE.value,
+        'publication_doi': 'https://prueba.com',
+        'tags': 'test, dataset, example'
+    }
+
+    login(test_client, "user@example.com", "test1234")
+
+    response = test_client.post('dataset/edit/2', data=form_data, follow_redirects=True)
+
+    logout(test_client)
+
+    assert response.status_code == 200
+
+
+def test_get_edit_draft(test_client):
+
+    login(test_client, "user@example.com", "test1234")
+
+    response = test_client.get('/dataset/edit/2')
+    logout(test_client)
+    assert response.status_code == 200
+
+
 def test_publish_draft_dataset_no_login(test_client):
-    
+
     # Publicar sin iniciar sesión
     response = test_client.get('/dataset/publish/2')
     assert response.status_code == 302
@@ -646,7 +757,7 @@ def test_publish_draft_dataset_no_login(test_client):
 def test_publish_draft_dataset_other_user(test_client):
 
     login(test_client, "user2@example.com", "test1234")
-    
+
     # Publicar un dataset de otro usuario
     response = test_client.get('/dataset/publish/2')
     assert response.status_code == 400
@@ -659,7 +770,7 @@ def test_publish_draft_dataset_other_user(test_client):
 def test_already_published_dataset(test_client):
 
     login(test_client, "user2@example.com", "test1234")
-    
+
     # Publicar un dataset que ya está publicado
     response = test_client.get('/dataset/publish/1')
     assert response.status_code == 400
@@ -697,7 +808,7 @@ def test_publish_draft_dataset(test_client):
     # Publicar un dataset en staging area
     response = test_client.get('/dataset/publish/2')
     assert response.status_code == 200
-    
+
     # Verifica que se ha publicado
     response = test_client.get('/doi/10.1234/dataset2', follow_redirects=True)
     logout(test_client)

@@ -129,7 +129,7 @@ def edit_dataset(dataset_id):
             )
             return redirect(url_for('dataset.list_dataset'))
         else:
-            return render_template("dataset/edit_dataset.html", form=new_form, dataset=dataset)
+            return jsonify({"message": new_form.errors}), 400
 
     return render_template("dataset/edit_dataset.html", form=form, dataset=dataset)
 
