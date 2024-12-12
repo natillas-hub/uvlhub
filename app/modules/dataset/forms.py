@@ -83,15 +83,6 @@ class DataSetForm(FlaskForm):
             "tags": self.tags.data,
         }
 
-    def populate_form_from_dataset(form, dataset):
-        dsmetadata = dataset.ds_meta_data
-        form.title.data = dsmetadata.title
-        form.desc.data = dsmetadata.description
-        form.publication_type.data = dsmetadata.publication_type.value
-        form.publication_doi.data = dsmetadata.publication_doi
-        form.dataset_doi.data = dsmetadata.dataset_doi
-        form.tags.data = dsmetadata.tags
-
     def convert_publication_type(self, value):
         for pt in PublicationType:
             if pt.value == value:
@@ -103,3 +94,31 @@ class DataSetForm(FlaskForm):
 
     def get_feature_models(self):
         return [fm.get_feature_model() for fm in self.feature_models]
+
+
+class DataSetFormUpdate(FlaskForm):
+    title = StringField("Title", validators=[DataRequired()])
+    desc = TextAreaField("Description", validators=[DataRequired()])
+    publication_type = SelectField(
+        "Publication type",
+        choices=[(pt.value, pt.name.replace("_", " ").title()) for pt in PublicationType],
+        validators=[DataRequired()],
+    )
+    publication_doi = StringField("Publication DOI", validators=[Optional(), URL()])
+    tags = StringField("Tags (separated by commas)")
+
+    submit = SubmitField("Submit")
+
+    def convert_publication_type(self, value):
+        for pt in PublicationType:
+            if pt.value == value:
+                return pt.name
+        return "NONE"
+
+    def populate_form_from_dataset(form, dataset):
+        dsmetadata = dataset.ds_meta_data
+        form.title.data = dsmetadata.title
+        form.desc.data = dsmetadata.description
+        form.publication_type.data = dsmetadata.publication_type.value
+        form.publication_doi.data = dsmetadata.publication_doi
+        form.tags.data = dsmetadata.tags

@@ -1,0 +1,77 @@
+{% extends "base_template.html" %}
+
+{% block title %}Edit dataset{% endblock %}
+
+{% block content %}
+<h1 class="h2 mb-3"><b>Edit dataset</b></h1>
+
+<form method="POST">
+    {{ form.hidden_tag() }}
+
+    <!-- Title field -->
+    <div class="col-lg-6 col-xs-12 col-md-12">
+        <div class="mb-3">
+            {{ form.title.label(class="form-label") }} *
+            {{ form.title(class="form-control") }}
+            {% for error in form.title.errors %}
+                <span style="color: red;">{{ error }}</span>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Description field -->
+    <div class="col-12">
+        <div class="mb-3">
+            {{ form.desc.label(class="form-label") }} *
+            {{ form.desc(rows=4, class="form-control") }}
+            {% for error in form.desc.errors %}
+                <span style="color: red;">{{ error }}</span>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Publication type -->
+    <div class="col-lg-6 col-6">
+        <div class="mb-3">
+            {{ form.publication_type.label(class="form-label") }}
+            {{ form.publication_type(class="form-control") }}
+        </div>
+
+    </div>
+
+    <!-- Publication doi -->
+    <div class="col-lg-6 col-6">
+        <div class="mb-3">
+            {{ form.publication_doi.label(class="form-label") }}
+            {{ form.publication_doi(class="form-control") }}
+            {% for error in form.publication_doi.errors %}
+                <span style="color: red;">{{ error }}</span>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Tags -->
+    <div class="col-6">
+        <div class="mb-3">
+            {{ form.tags.label(class="form-label") }}
+            {{ form.tags(class="form-control") }}
+            {% for error in form.tags.errors %}
+                <span style="color: red;">{{ error }}</span>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Submit button -->
+    <div class="mb-3">
+        <button type="submit" class="btn btn-primary">Edit datast</button>
+    </div>
+
+    <!-- Error message -->
+    {% if error %}
+    <div class="alert alert-danger">
+        {{ error }}
+    </div>
+    {% endif %}
+</form>
+
+{% endblock %}

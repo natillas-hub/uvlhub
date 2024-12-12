@@ -23,7 +23,7 @@ from flask import (
 )
 from flask_login import login_required, current_user
 
-from app.modules.dataset.forms import DataSetForm
+from app.modules.dataset.forms import DataSetForm, DataSetFormUpdate
 from app.modules.dataset.models import (
     DSDownloadRecord
 )
@@ -105,29 +105,33 @@ def create_dataset():
 
 @dataset_bp.route("/dataset/edit/<int:dataset_id>", methods=["GET", "POST"])
 @login_required
-def edit(dataset_id):
-    form = DataSetForm()
+def update_dataset(dataset_id):
+    form = DataSetFormUpdate()
     dataset = dataset_service.get_or_404(dataset_id)
 
-    form.populate_form_from_dataset(dataset)
+    if request.method == "GET":
+        form.populate_form_from_dataset(dataset)
+
+    new_form = DataSetFormUpdate(request.form)
 
     if current_user.id != dataset.user.id or dataset.ds_meta_data.dataset_doi:
-        return jsonify({"message": "You are not allowed to publish this dataset"}), 400
+        return jsonify({"message": "You are not allowed to edit this dataset"}), 400
 
     if request.method == "POST":
-        service = DataSetService()
-        new_form = DataSetForm()
-        new_dsmetadata = new_form.get_dsmetadata()
-        print(new_dsmetadata)
-        service.update_dsmetadata(dataset.ds_meta_data.id, name=new_dsmetadata["title"],
-                                  description=new_dsmetadata["description"],
-                                  publication_type=new_dsmetadata["publication_type"],
-                                  tags=new_dsmetadata["tags"])
+        if new_form.validate_on_submit():
+            dataset_service.update_dsmetadata(
+                dataset.ds_meta_data_id,
+                title=new_form.title.data,
+                description=new_form.desc.data,
+                publication_doi=new_form.publication_doi.data,
+                publication_type=new_form.convert_publication_type(new_form.publication_type.data),
+                tags=new_form.tags.data
+            )
+            return redirect(url_for('dataset.list_dataset'))
+        else:
+            return render_template("dataset/edit.html", form=new_form, dataset=dataset)
 
-        msg = "Everything works!"
-        return jsonify({"message": msg}), 200
-
-    return render_template("dataset/edit_dataset.html", form=form, dataset=dataset)
+    return render_template("dataset/edit.html", form=form, dataset=dataset)
 
 
 @dataset_bp.route("/dataset/upload-draft", methods=["GET", "POST"])
