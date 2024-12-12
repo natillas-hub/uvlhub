@@ -83,6 +83,15 @@ class DataSetForm(FlaskForm):
             "tags": self.tags.data,
         }
 
+    def populate_form_from_dataset(form, dataset):
+        dsmetadata = dataset.ds_meta_data
+        form.title.data = dsmetadata.title
+        form.desc.data = dsmetadata.description
+        form.publication_type.data = dsmetadata.publication_type.value
+        form.publication_doi.data = dsmetadata.publication_doi
+        form.dataset_doi.data = dsmetadata.dataset_doi
+        form.tags.data = dsmetadata.tags
+
     def convert_publication_type(self, value):
         for pt in PublicationType:
             if pt.value == value:

@@ -103,6 +103,33 @@ def create_dataset():
     return render_template("dataset/upload_dataset.html", form=form)
 
 
+@dataset_bp.route("/dataset/edit/<int:dataset_id>", methods=["GET", "POST"])
+@login_required
+def edit(dataset_id):
+    form = DataSetForm()
+    dataset = dataset_service.get_or_404(dataset_id)
+
+    form.populate_form_from_dataset(dataset)
+
+    if current_user.id != dataset.user.id or dataset.ds_meta_data.dataset_doi:
+        return jsonify({"message": "You are not allowed to publish this dataset"}), 400
+
+    if request.method == "POST":
+        service = DataSetService()
+        new_form = DataSetForm()
+        new_dsmetadata = new_form.get_dsmetadata()
+        print(new_dsmetadata)
+        service.update_dsmetadata(dataset.ds_meta_data.id, name=new_dsmetadata["title"],
+                                  description=new_dsmetadata["description"],
+                                  publication_type=new_dsmetadata["publication_type"],
+                                  tags=new_dsmetadata["tags"])
+
+        msg = "Everything works!"
+        return jsonify({"message": msg}), 200
+
+    return render_template("dataset/edit_dataset.html", form=form, dataset=dataset)
+
+
 @dataset_bp.route("/dataset/upload-draft", methods=["GET", "POST"])
 @login_required
 def create_dataset_draft():
