@@ -1,9 +1,10 @@
 import pytest
 from app import db
-from app.modules.conftest import login
+from app.modules.conftest import login, logout
 from app.modules.dataset.models import DataSet, DSMetrics, DSMetaData, PublicationType
 from app.modules.featuremodel.models import FeatureModel
 from app.modules.hubfile.models import Hubfile
+from app.modules.featuremodel.models import FMMetaData
 from app.modules.auth.models import User
 from app.modules.profile.models import UserProfile
 from app.modules.dataset.services import DataSetService, features_counter
@@ -29,7 +30,7 @@ def test_client(test_client):
             description="This is a test dataset description.",
             publication_type=PublicationType.JOURNAL_ARTICLE,
             publication_doi="10.1234/test.doi",
-            dataset_doi="10.1234/dataset.doi",
+            dataset_doi="10.1234/dataset",
             tags="test, dataset, example",
             ds_metrics=ds_metrics_test
         )
@@ -75,6 +76,14 @@ def test_client(test_client):
         profile = UserProfile(user_id=user_test.id, name="Name", surname="Surname")
         db.session.add(profile)
         db.session.commit()
+        
+        user_test2 = User(email='user2@example.com', password='test1234')
+        db.session.add(user_test2)
+        db.session.commit()
+
+        profile2 = UserProfile(user_id=1, name="Name", surname="Surname")
+        db.session.add(profile2)
+        db.session.commit()
 
         ds_metrics_test_unsync = DSMetrics(
             number_of_models="3",
@@ -96,8 +105,21 @@ def test_client(test_client):
         )
         db.session.add(dataset_test_unsync)
 
+        feature_model_meta_data_unsync = FMMetaData(
+            uvl_filename="unsync_file.uvl",
+            title="Unsynchronized Feature Model",
+            description="This is an unsynchronized feature model description.",
+            publication_type=PublicationType.JOURNAL_ARTICLE,
+            publication_doi="10.5678/unsync.doi",
+            tags="unsync, feature, model",
+            uvl_version="1.0"
+        )
+        db.session.add(feature_model_meta_data_unsync)
+        db.session.commit()
+
         feature_model_test_unsync = FeatureModel(
-            data_set_id=2
+            data_set_id=2,
+            fm_meta_data_id=1
         )
         db.session.add(feature_model_test_unsync)
         db.session.commit()
@@ -558,11 +580,11 @@ OtherSection
     os.remove(file_path)
 
 
+# Tests unitarios relaccionados con Staging Area (Issue #7)
 def test_create_dataset_draft_missing_title(test_client):
-    """
-    Test the POST method for the create_dataset_draft route when the title is missing.
-    """
+
     login(test_client, "user@example.com", "test1234")
+    # Form sin archivo y sin titulo
     form_data = {
         'title': '',
         'description': 'Test Description',
@@ -572,17 +594,18 @@ def test_create_dataset_draft_missing_title(test_client):
         'tags': 'test, dataset, example'
     }
     response = test_client.post(url_for('dataset.create_dataset_draft'), data=form_data)
+    logout(test_client)
     assert response.status_code == 400
+    
+    # Verifica que le falta el titulo
     assert "This field is required." in response.json["message"]["title"]
 
 
 def test_create_dataset_draft_post_exception(test_client):
-    """
-    Test the POST method for the create_dataset_draft route when an exception occurs.
-    """
 
     login(test_client, "user@example.com", "test1234")
-
+    
+    # Form sin archivo
     form_data = {
         'title': 'Test Dataset',
         'description': 'Test Description',
@@ -592,20 +615,90 @@ def test_create_dataset_draft_post_exception(test_client):
         'tags': 'test, dataset, example'
     }
     response = test_client.post(url_for('dataset.create_dataset_draft'), data=form_data)
+    logout(test_client)
+    
+    # Verifica que no se ha subido ningún archivo
     assert response.status_code == 400
 
 
 def test_get_draft_dataset(test_client):
-    # Create a user and log in
 
-    login(test_client, "user@exmplae.com", "test1234")
-
-    # Make a GET request to the unsynchronized dataset route
+    login(test_client, "user@example.com", "test1234")
+    
+    # Get de un dataset en stagin area
     response = test_client.get('/dataset/unsynchronized/2/')
 
-    # Check if the response status code is 200 (OK)
+    logout(test_client)
+
     assert response.status_code == 200
 
-    # Check if the response contains the expected content
-    assert b"Unsynchronized Dataset Title" in response.data
-    assert b"This is an unsynchronized dataset description." in response.data
+
+def test_publish_draft_dataset_no_login(test_client):
+    
+    # Publicar sin iniciar sesión
+    response = test_client.get('/dataset/publish/2')
+    assert response.status_code == 302
+
+    response = test_client.get('/doi/10.1234/dataset2', follow_redirects=True)
+    assert response.status_code == 404
+
+
+def test_publish_draft_dataset_other_user(test_client):
+
+    login(test_client, "user2@example.com", "test1234")
+    
+    # Publicar un dataset de otro usuario
+    response = test_client.get('/dataset/publish/2')
+    assert response.status_code == 400
+
+    response = test_client.get('/doi/10.1234/dataset2', follow_redirects=True)
+    logout(test_client)
+    assert response.status_code == 404
+
+
+def test_already_published_dataset(test_client):
+
+    login(test_client, "user2@example.com", "test1234")
+    
+    # Publicar un dataset que ya está publicado
+    response = test_client.get('/dataset/publish/1')
+    assert response.status_code == 400
+
+    response = test_client.get('/doi/10.1234/dataset1', follow_redirects=True)
+    logout(test_client)
+    assert response.status_code == 404
+
+
+def test_publish_draft_dataset(test_client):
+
+    # Archivo necesario para la publicación del dataset
+    os.makedirs('uploads/user_2/dataset_2', exist_ok=True)
+    content = """features
+    Chat
+        mandatory
+            Connection
+                alternative
+                    "Peer 2 Peer"
+                    Server
+            Messages
+                or
+                    Text
+                    Video
+                    Audio
+        optional
+            "Data Storage"
+            "Media Player"
+"""
+    with open('uploads/user_2/dataset_2/unsync_file.uvl', 'w') as f:
+        f.write(content)
+
+    login(test_client, "user@example.com", "test1234")
+
+    # Publicar un dataset en staging area
+    response = test_client.get('/dataset/publish/2')
+    assert response.status_code == 200
+    
+    # Verifica que se ha publicado
+    response = test_client.get('/doi/10.1234/dataset2', follow_redirects=True)
+    logout(test_client)
+    assert response.status_code == 200

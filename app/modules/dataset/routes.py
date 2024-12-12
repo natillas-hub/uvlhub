@@ -141,7 +141,7 @@ def publish_dataset(dataset_id):
     mergedUVL = []
     if current_user.id != dataset.user.id or dataset.ds_meta_data.dataset_doi:
         return jsonify({"message": "You are not allowed to publish this dataset"}), 400
-        
+
     try:
         logger.info("Parsing the UVL files to JSON...")
         for feature_model in dataset.feature_models:
