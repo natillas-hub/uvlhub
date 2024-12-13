@@ -79,7 +79,6 @@ class DataSetSeeder(BaseSeeder):
 
         # Add the dataset with a specific ID (32)
         specific_dataset = DataSet(
-            id=32,
             user_id=user1.id,
             ds_meta_data_id=draft_ds_meta_data.id,
             created_at=datetime.now(timezone.utc)
