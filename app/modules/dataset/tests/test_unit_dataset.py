@@ -684,7 +684,7 @@ def test_edit_draft_empty_title(test_client):
 
     response = test_client.post('dataset/edit/2', data=form_data)
     logout(test_client)
-    assert response.status_code == 400
+    assert response.request.path == url_for("dataset.edit_dataset", dataset_id=2)
 
 
 def test_edit_draft_empty_description(test_client):
@@ -699,7 +699,7 @@ def test_edit_draft_empty_description(test_client):
 
     response = test_client.post('dataset/edit/2', data=form_data, follow_redirects=True)
     logout(test_client)
-    assert response.status_code == 400
+    assert response.request.path == url_for("dataset.edit_dataset", dataset_id=2)
 
 
 def test_edit_draft_bad_doi(test_client):
@@ -714,7 +714,7 @@ def test_edit_draft_bad_doi(test_client):
 
     response = test_client.post('dataset/edit/2', data=form_data, follow_redirects=True)
     logout(test_client)
-    assert response.status_code == 400
+    assert response.request.path == url_for("dataset.edit_dataset", dataset_id=2)
 
 
 def test_edit_draft(test_client):
