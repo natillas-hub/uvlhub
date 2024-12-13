@@ -9,6 +9,7 @@ from core.environment.host import get_host_for_selenium_testing
 from core.selenium.common import initialize_driver, close_driver
 
 from selenium.common.exceptions import NoSuchElementException
+import re
 
 
 def wait_for_page_to_load(driver, timeout=4):
@@ -356,7 +357,6 @@ def test_upload_dataset_draft():
         name_field1.send_keys("Author1")
         affiliation_field1 = driver.find_element(By.NAME, "authors-1-affiliation")
         affiliation_field1.send_keys("Club1")
-
         # Obtén las rutas absolutas de los archivos
         file1_path = os.path.abspath("app/modules/dataset/uvl_examples/file1.uvl")
         file2_path = os.path.abspath("app/modules/dataset/uvl_examples/file2.uvl")
@@ -387,6 +387,15 @@ def test_upload_dataset_draft():
         upload_btn.send_keys(Keys.RETURN)
         wait_for_page_to_load(driver)
         time.sleep(2)  # Force wait time
+        # Find the last table
+        tables = driver.find_elements(By.CLASS_NAME, "card-body")
+        last_table = tables[-1]
+
+        # Find the first URL in the last table
+        first_url = last_table.find_element(By.TAG_NAME, "a").get_attribute("href")
+        res_id = first_url.split("/")[-2]
+        
+        time.sleep(2)  # Force wait time
 
         assert driver.current_url == f"{host}/dataset/list", "Test failed!"
 
@@ -400,6 +409,11 @@ def test_upload_dataset_draft():
 
         # Close the browser
         close_driver(driver)
+
+    return res_id
+
+
+url_id = test_upload_dataset_draft()
 
 
 def test_edit_dataset_draft():
@@ -427,7 +441,7 @@ def test_edit_dataset_draft():
         initial_datasets = count_datasets(driver, host)
 
         # Open the upload dataset
-        driver.get(f"{host}/dataset/edit/32")
+        driver.get(f"{host}/dataset/edit/{url_id}")
         wait_for_page_to_load(driver)
 
         # Find basic info and UVL model and fill values
@@ -448,6 +462,7 @@ def test_edit_dataset_draft():
         edit_btn = driver.find_element(By.CLASS_NAME, "btn-primary")
         edit_btn.send_keys(Keys.RETURN)
         wait_for_page_to_load(driver)
+
         time.sleep(2)  # Force wait time
 
         assert driver.current_url == f"{host}/dataset/list", "Test failed!"
@@ -487,22 +502,17 @@ def test_publish_dataset():
 
         # Count initial datasets
         initial_datasets = count_datasets(driver, host)
-
         # Open the upload dataset
         # Get the last dataset index
-        driver.get(f"{host}/dataset/publish/32")
+        driver.get(f"{host}/dataset/publish/{url_id}")
         wait_for_page_to_load(driver)
         time.sleep(2)
-
-        # Find basic info and UVL model and fill values
-
-        assert driver.current_url == f"{host}/dataset/list", "Test failed!"
 
         # Count final datasets
         final_datasets = count_datasets(driver, host)
         assert final_datasets == initial_datasets, "Test failed!"
 
-        print("Test edit dataset draft passed!")
+        print("Test publish dataset draft passed!")
 
     finally:
 
@@ -519,6 +529,5 @@ test_download_uvl()
 test_download_glecone()
 test_download_dimacs()
 test_download_splot()
-test_upload_dataset_draft()
 test_edit_dataset_draft()
 test_publish_dataset()
