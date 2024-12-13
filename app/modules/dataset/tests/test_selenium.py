@@ -302,17 +302,6 @@ def test_download_splot():
         close_driver(driver)
 
 
-# Call all test functions
-test_download_all_uvl()
-test_download_all_dimacs()
-test_download_all_glencoe()
-test_download_all_splot()
-test_download_uvl()
-test_download_glecone()
-test_download_dimacs()
-test_download_splot()
-
-
 def test_upload_dataset_draft():
     driver = initialize_driver()
 
@@ -393,7 +382,7 @@ def test_upload_dataset_draft():
         name_field.send_keys("Author3")
         affiliation_field = driver.find_element(By.NAME, "feature_models-0-authors-2-affiliation")
         affiliation_field.send_keys("Club3")
-
+        time.sleep(2)  # Force wait time
         upload_btn = driver.find_element(By.ID, "upload_button_draft")
         upload_btn.send_keys(Keys.RETURN)
         wait_for_page_to_load(driver)
@@ -413,5 +402,76 @@ def test_upload_dataset_draft():
         close_driver(driver)
 
 
+def test_edit_dataset_draft():
+    driver = initialize_driver()
+
+    try:
+        host = get_host_for_selenium_testing()
+
+        # Open the login page
+        driver.get(f"{host}/login")
+        wait_for_page_to_load(driver)
+
+        # Find the username and password field and enter the values
+        email_field = driver.find_element(By.NAME, "email")
+        password_field = driver.find_element(By.NAME, "password")
+
+        email_field.send_keys("user1@example.com")
+        password_field.send_keys("1234")
+
+        # Send the form
+        password_field.send_keys(Keys.RETURN)
+        wait_for_page_to_load(driver)
+
+        # Count initial datasets
+        initial_datasets = count_datasets(driver, host)
+
+        # Open the upload dataset
+        driver.get(f"{host}/dataset/edit/32")
+        wait_for_page_to_load(driver)
+
+        # Find basic info and UVL model and fill values
+        title_field = driver.find_element(By.NAME, "title")
+        title_field.clear()
+        title_field.send_keys("Title edited")
+        desc_field = driver.find_element(By.NAME, "desc")
+        desc_field.clear()
+        desc_field.send_keys("Description edited")
+        public_doi = driver.find_element(By.NAME, "publication_type")
+        public_doi.send_keys(Keys.RETURN)
+        public_doi.send_keys(Keys.DOWN)
+        public_doi.send_keys(Keys.RETURN)
+        tags_field = driver.find_element(By.NAME, "tags")
+        tags_field.clear()
+        tags_field.send_keys("tag1,tag2,tag3")
+
+        edit_btn = driver.find_element(By.CLASS_NAME, "btn-primary")
+        edit_btn.send_keys(Keys.RETURN)
+        wait_for_page_to_load(driver)
+        time.sleep(2)  # Force wait time
+
+        assert driver.current_url == f"{host}/dataset/list", "Test failed!"
+
+        # Count final datasets
+        final_datasets = count_datasets(driver, host)
+        assert final_datasets == initial_datasets, "Test failed!"
+
+        print("Test edit dataset draft passed!")
+
+    finally:
+
+        # Close the browser
+        close_driver(driver)
+
+
 # Call the test function
+test_download_all_uvl()
+test_download_all_dimacs()
+test_download_all_glencoe()
+test_download_all_splot()
+test_download_uvl()
+test_download_glecone()
+test_download_dimacs()
+test_download_splot()
 test_upload_dataset_draft()
+test_edit_dataset_draft()
