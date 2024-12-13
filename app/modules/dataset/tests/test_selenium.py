@@ -9,7 +9,6 @@ from core.environment.host import get_host_for_selenium_testing
 from core.selenium.common import initialize_driver, close_driver
 
 from selenium.common.exceptions import NoSuchElementException
-import re
 
 
 def wait_for_page_to_load(driver, timeout=4):
@@ -394,7 +393,7 @@ def test_upload_dataset_draft():
         # Find the first URL in the last table
         first_url = last_table.find_element(By.TAG_NAME, "a").get_attribute("href")
         res_id = first_url.split("/")[-2]
-        
+
         time.sleep(2)  # Force wait time
 
         assert driver.current_url == f"{host}/dataset/list", "Test failed!"
