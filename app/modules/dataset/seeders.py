@@ -43,6 +43,18 @@ class DataSetSeeder(BaseSeeder):
                 ds_metrics_id=seeded_ds_metrics.id
             ) for i in range(4)
         ]
+
+        # Add the draft dataset without publication_doi
+        draft_ds_meta_data = DSMetaData(
+            deposition_id=5,
+            title='Draft Dataset',
+            description='Description for draft dataset',
+            publication_type=PublicationType.DATA_MANAGEMENT_PLAN,
+            tags='draft, dataset',
+            ds_metrics_id=seeded_ds_metrics.id
+        )
+        ds_meta_data_list.append(draft_ds_meta_data)
+
         seeded_ds_meta_data = self.seed(ds_meta_data_list)
 
         # Create Author instances and associate with DSMetaData
@@ -51,8 +63,8 @@ class DataSetSeeder(BaseSeeder):
                 name=f'Author {i+1}',
                 affiliation=f'Affiliation {i+1}',
                 orcid=f'0000-0000-0000-000{i}',
-                ds_meta_data_id=seeded_ds_meta_data[i % 4].id
-            ) for i in range(4)
+                ds_meta_data_id=seeded_ds_meta_data[i % 5].id
+            ) for i in range(5)
         ]
         self.seed(authors)
 
@@ -64,6 +76,15 @@ class DataSetSeeder(BaseSeeder):
                 created_at=datetime.now(timezone.utc)
             ) for i in range(4)
         ]
+
+        # Add the dataset with a specific ID (32)
+        specific_dataset = DataSet(
+            user_id=user1.id,
+            ds_meta_data_id=draft_ds_meta_data.id,
+            created_at=datetime.now(timezone.utc)
+        )
+        datasets.append(specific_dataset)
+
         seeded_datasets = self.seed(datasets)
 
         # Assume there are 12 UVL files, create corresponding FMMetaData and FeatureModel
