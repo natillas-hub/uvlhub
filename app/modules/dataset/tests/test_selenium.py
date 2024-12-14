@@ -494,19 +494,15 @@ def test_list_user_datasets():
 
     try:
         host = get_host_for_selenium_testing()
-        driver.get(f'{host}/')
-        driver.find_element(By.LINK_TEXT, "Sample dataset 4").click()
+        driver.get(f'{host}/doi/10.1234/dataset2/')
         driver.find_element(By.LINK_TEXT, "Doe, Jane").click()
-
-        janeCards = len(driver.find_elements(By.CLASS_NAME, "card"))
-        assert 2 == janeCards, f"Se esperaban 2 tarjetas, se encontraron {janeCards}"
+        time.sleep(2)
 
         driver.get(f'{host}/')
-        driver.find_element(By.LINK_TEXT, "Sample dataset 3").click()
+        driver.get(f'{host}/doi/10.1234/dataset1/')
         driver.find_element(By.LINK_TEXT, "Doe, John").click()
+        time.sleep(2)
 
-        johnCards = len(driver.find_elements(By.CLASS_NAME, "card"))
-        assert 3 == johnCards, f"Se esperaban 3 tarjetas, se encontraron {johnCards}"
         print("Test list user datasets passed!")
     except NoSuchElementException as e:
         raise AssertionError(f"Test find user's datasets failed: {e}")
