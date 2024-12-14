@@ -1,0 +1,124 @@
+2024-12-14 16:02:07,960 - app.modules.dataset.routes - ERROR - Exception while create dataset data in local Destination path 'uploads/user_1/dataset_8/file2 (2).uvl' already exists
+Traceback (most recent call last):
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/routes.py", line 152, in create_dataset_draft
+    dataset_service.move_feature_models(dataset)
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/services.py", line 93, in move_feature_models
+    shutil.move(os.path.join(source_dir, uvl_filename), dest_dir)
+  File "/home/horacio/miniconda3/lib/python3.12/shutil.py", line 845, in move
+    raise Error("Destination path '%s' already exists" % real_dst)
+shutil.Error: Destination path 'uploads/user_1/dataset_8/file2 (2).uvl' already exists
+2024-12-14 16:07:47,950 - app.modules.dataset.routes - ERROR - Exception while create dataset data in local Destination path 'uploads/user_1/dataset_6/file1.uvl' already exists
+Traceback (most recent call last):
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/routes.py", line 152, in create_dataset_draft
+    dataset_service.move_feature_models(dataset)
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/services.py", line 93, in move_feature_models
+    shutil.move(os.path.join(source_dir, uvl_filename), dest_dir)
+  File "/home/horacio/miniconda3/lib/python3.12/shutil.py", line 845, in move
+    raise Error("Destination path '%s' already exists" % real_dst)
+shutil.Error: Destination path 'uploads/user_1/dataset_6/file1.uvl' already exists
+2024-12-14 16:09:27,619 - app.modules.dataset.routes - ERROR - Exception while create dataset data in local Destination path 'uploads/user_1/dataset_7/file1 (1).uvl' already exists
+Traceback (most recent call last):
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/routes.py", line 152, in create_dataset_draft
+    dataset_service.move_feature_models(dataset)
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/services.py", line 93, in move_feature_models
+    shutil.move(os.path.join(source_dir, uvl_filename), dest_dir)
+  File "/home/horacio/miniconda3/lib/python3.12/shutil.py", line 845, in move
+    raise Error("Destination path '%s' already exists" % real_dst)
+shutil.Error: Destination path 'uploads/user_1/dataset_7/file1 (1).uvl' already exists
+2024-12-14 16:10:21,177 - app.modules.dataset.routes - ERROR - Exception while create dataset data in local Destination path 'uploads/user_1/dataset_8/file1 (2).uvl' already exists
+Traceback (most recent call last):
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/routes.py", line 152, in create_dataset_draft
+    dataset_service.move_feature_models(dataset)
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/services.py", line 93, in move_feature_models
+    shutil.move(os.path.join(source_dir, uvl_filename), dest_dir)
+  File "/home/horacio/miniconda3/lib/python3.12/shutil.py", line 845, in move
+    raise Error("Destination path '%s' already exists" % real_dst)
+shutil.Error: Destination path 'uploads/user_1/dataset_8/file1 (2).uvl' already exists
+2024-12-14 16:12:07,052 - app.modules.dataset.routes - ERROR - Exception while create dataset data in local Destination path 'uploads/user_1/dataset_9/file2 (3).uvl' already exists
+Traceback (most recent call last):
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/routes.py", line 152, in create_dataset_draft
+    dataset_service.move_feature_models(dataset)
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/services.py", line 93, in move_feature_models
+    shutil.move(os.path.join(source_dir, uvl_filename), dest_dir)
+  File "/home/horacio/miniconda3/lib/python3.12/shutil.py", line 845, in move
+    raise Error("Destination path '%s' already exists" % real_dst)
+shutil.Error: Destination path 'uploads/user_1/dataset_9/file2 (3).uvl' already exists
+2024-12-14 16:12:11,836 - app.modules.dataset.routes - ERROR - Exception while create dataset data in local [Errno 2] No such file or directory: 'uploads/temp/1/file1 (3).uvl'
+Traceback (most recent call last):
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/routes.py", line 150, in create_dataset_draft
+    dataset = dataset_service.create_from_form(form=form, current_user=current_user)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/services.py", line 216, in create_from_form
+    raise exc
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/services.py", line 178, in create_from_form
+    features += features_counter(uvl_file_path)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/services.py", line 47, in features_counter
+    with open(uvl_file, 'r') as file:
+         ^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'uploads/temp/1/file1 (3).uvl'
+2024-12-14 16:12:12,360 - app.modules.dataset.routes - ERROR - Exception while create dataset data in local [Errno 2] No such file or directory: 'uploads/temp/1/file1 (3).uvl'
+Traceback (most recent call last):
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/routes.py", line 150, in create_dataset_draft
+    dataset = dataset_service.create_from_form(form=form, current_user=current_user)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/services.py", line 216, in create_from_form
+    raise exc
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/services.py", line 178, in create_from_form
+    features += features_counter(uvl_file_path)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/services.py", line 47, in features_counter
+    with open(uvl_file, 'r') as file:
+         ^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'uploads/temp/1/file1 (3).uvl'
+2024-12-14 16:12:12,707 - app.modules.dataset.routes - ERROR - Exception while create dataset data in local [Errno 2] No such file or directory: 'uploads/temp/1/file1 (3).uvl'
+Traceback (most recent call last):
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/routes.py", line 150, in create_dataset_draft
+    dataset = dataset_service.create_from_form(form=form, current_user=current_user)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/services.py", line 216, in create_from_form
+    raise exc
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/services.py", line 178, in create_from_form
+    features += features_counter(uvl_file_path)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/services.py", line 47, in features_counter
+    with open(uvl_file, 'r') as file:
+         ^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'uploads/temp/1/file1 (3).uvl'
+2024-12-14 16:12:12,897 - app.modules.dataset.routes - ERROR - Exception while create dataset data in local [Errno 2] No such file or directory: 'uploads/temp/1/file1 (3).uvl'
+Traceback (most recent call last):
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/routes.py", line 150, in create_dataset_draft
+    dataset = dataset_service.create_from_form(form=form, current_user=current_user)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/services.py", line 216, in create_from_form
+    raise exc
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/services.py", line 178, in create_from_form
+    features += features_counter(uvl_file_path)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/services.py", line 47, in features_counter
+    with open(uvl_file, 'r') as file:
+         ^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'uploads/temp/1/file1 (3).uvl'
+2024-12-14 16:12:13,070 - app.modules.dataset.routes - ERROR - Exception while create dataset data in local [Errno 2] No such file or directory: 'uploads/temp/1/file1 (3).uvl'
+Traceback (most recent call last):
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/routes.py", line 150, in create_dataset_draft
+    dataset = dataset_service.create_from_form(form=form, current_user=current_user)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/services.py", line 216, in create_from_form
+    raise exc
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/services.py", line 178, in create_from_form
+    features += features_counter(uvl_file_path)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/services.py", line 47, in features_counter
+    with open(uvl_file, 'r') as file:
+         ^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'uploads/temp/1/file1 (3).uvl'
+2024-12-14 16:17:02,908 - app.modules.dataset.routes - ERROR - Exception while create dataset data in local Destination path 'uploads/user_1/dataset_6/file1.uvl' already exists
+Traceback (most recent call last):
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/routes.py", line 152, in create_dataset_draft
+    dataset_service.move_feature_models(dataset)
+  File "/home/horacio/Escritorio/egc2/uvlhub/app/modules/dataset/services.py", line 93, in move_feature_models
+    shutil.move(os.path.join(source_dir, uvl_filename), dest_dir)
+  File "/home/horacio/miniconda3/lib/python3.12/shutil.py", line 845, in move
+    raise Error("Destination path '%s' already exists" % real_dst)
+shutil.Error: Destination path 'uploads/user_1/dataset_6/file1.uvl' already exists

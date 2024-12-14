@@ -307,6 +307,7 @@ def test_upload_dataset_draft():
 
     try:
         host = get_host_for_selenium_testing()
+        driver.set_window_size(1920, 1080)
 
         # Open the login page
         driver.get(f"{host}/login")
@@ -338,24 +339,6 @@ def test_upload_dataset_draft():
         tags_field = driver.find_element(By.NAME, "tags")
         tags_field.send_keys("tag1,tag2")
 
-        # Add two authors and fill
-        add_author_button = driver.find_element(By.ID, "add_author")
-        add_author_button.send_keys(Keys.RETURN)
-        wait_for_page_to_load(driver)
-        add_author_button.send_keys(Keys.RETURN)
-        wait_for_page_to_load(driver)
-
-        name_field0 = driver.find_element(By.NAME, "authors-0-name")
-        name_field0.send_keys("Author0")
-        affiliation_field0 = driver.find_element(By.NAME, "authors-0-affiliation")
-        affiliation_field0.send_keys("Club0")
-        orcid_field0 = driver.find_element(By.NAME, "authors-0-orcid")
-        orcid_field0.send_keys("0000-0000-0000-0000")
-
-        name_field1 = driver.find_element(By.NAME, "authors-1-name")
-        name_field1.send_keys("Author1")
-        affiliation_field1 = driver.find_element(By.NAME, "authors-1-affiliation")
-        affiliation_field1.send_keys("Club1")
         # Obtén las rutas absolutas de los archivos
         file1_path = os.path.abspath("app/modules/dataset/uvl_examples/file1.uvl")
         file2_path = os.path.abspath("app/modules/dataset/uvl_examples/file2.uvl")
@@ -369,26 +352,15 @@ def test_upload_dataset_draft():
         dropzone = driver.find_element(By.CLASS_NAME, "dz-hidden-input")
         dropzone.send_keys(file2_path)
         wait_for_page_to_load(driver)
-
-        # Add authors in UVL models
-        show_button = driver.find_element(By.ID, "0_button")
-        show_button.send_keys(Keys.RETURN)
-        add_author_uvl_button = driver.find_element(By.ID, "0_form_authors_button")
-        add_author_uvl_button.send_keys(Keys.RETURN)
-        wait_for_page_to_load(driver)
-
-        name_field = driver.find_element(By.NAME, "feature_models-0-authors-2-name")
-        name_field.send_keys("Author3")
-        affiliation_field = driver.find_element(By.NAME, "feature_models-0-authors-2-affiliation")
-        affiliation_field.send_keys("Club3")
-        time.sleep(2)  # Force wait time
+        time.sleep(4)
         upload_btn = driver.find_element(By.ID, "upload_button_draft")
         upload_btn.send_keys(Keys.RETURN)
+        time.sleep(4)
+
         wait_for_page_to_load(driver)
-        time.sleep(2)  # Force wait time
         # Find the last table
-        tables = driver.find_elements(By.CLASS_NAME, "card-body")
-        last_table = tables[-1]
+        table = driver.find_elements(By.CLASS_NAME, "table")
+        last_table = table[-1]
 
         # Find the first URL in the last table
         first_url = last_table.find_element(By.TAG_NAME, "a").get_attribute("href")
@@ -412,10 +384,7 @@ def test_upload_dataset_draft():
     return res_id
 
 
-url_id = test_upload_dataset_draft()
-
-
-def test_edit_dataset_draft():
+def test_edit_dataset_draft(url_id):
     driver = initialize_driver()
 
     try:
@@ -478,7 +447,7 @@ def test_edit_dataset_draft():
         close_driver(driver)
 
 
-def test_publish_dataset():
+def test_publish_dataset(url_id):
     driver = initialize_driver()
 
     try:
@@ -519,7 +488,120 @@ def test_publish_dataset():
         close_driver(driver)
 
 
+# --- TESTS DE PROFILE VIEW --- #
+def test_list_user_datasets():
+    driver = initialize_driver()
+
+    try:
+        host = get_host_for_selenium_testing()
+        driver.get(f'{host}/')
+        driver.find_element(By.LINK_TEXT, "Sample dataset 4").click()
+        driver.find_element(By.LINK_TEXT, "Doe, Jane").click()
+
+        janeCards = len(driver.find_elements(By.CLASS_NAME, "card"))
+        assert 2 == janeCards, f"Se esperaban 2 tarjetas, se encontraron {janeCards}"
+
+        driver.get(f'{host}/')
+        driver.find_element(By.LINK_TEXT, "Sample dataset 3").click()
+        driver.find_element(By.LINK_TEXT, "Doe, John").click()
+
+        johnCards = len(driver.find_elements(By.CLASS_NAME, "card"))
+        assert 3 == johnCards, f"Se esperaban 3 tarjetas, se encontraron {johnCards}"
+        print("Test list user datasets passed!")
+    except NoSuchElementException as e:
+        raise AssertionError(f"Test find user's datasets failed: {e}")
+
+    finally:
+        close_driver(driver)
+
+
+def test_upload_and_list_user_dataset():
+    driver = initialize_driver()
+
+    try:
+        host = get_host_for_selenium_testing()
+
+        # Open the login page
+        driver.get(f"{host}/login")
+        wait_for_page_to_load(driver)
+
+        # Find the username and password field and enter the values
+        email_field = driver.find_element(By.NAME, "email")
+        password_field = driver.find_element(By.NAME, "password")
+
+        email_field.send_keys("user1@example.com")
+        password_field.send_keys("1234")
+
+        # Send the form
+        password_field.send_keys(Keys.RETURN)
+        wait_for_page_to_load(driver)
+
+        driver.get(f'{host}/user/1/datasets')
+
+        expectedJohn = len(driver.find_elements(By.CLASS_NAME, "card"))+1
+
+        # Open the upload dataset
+        driver.get(f"{host}/dataset/upload")
+        wait_for_page_to_load(driver)
+
+        # Find basic info and UVL model and fill values
+        title_field = driver.find_element(By.NAME, "title")
+        title_field.send_keys("User1 DataTest")
+        desc_field = driver.find_element(By.NAME, "desc")
+        desc_field.send_keys("Description")
+        tags_field = driver.find_element(By.NAME, "tags")
+        tags_field.send_keys("test")
+
+        # Add two authors and fill
+        add_author_button = driver.find_element(By.ID, "add_author")
+        add_author_button.send_keys(Keys.RETURN)
+        wait_for_page_to_load(driver)
+        add_author_button.send_keys(Keys.RETURN)
+        wait_for_page_to_load(driver)
+
+        name_field0 = driver.find_element(By.NAME, "authors-0-name")
+        name_field0.send_keys("Author0")
+        affiliation_field0 = driver.find_element(By.NAME, "authors-0-affiliation")
+        affiliation_field0.send_keys("Club0")
+        orcid_field0 = driver.find_element(By.NAME, "authors-0-orcid")
+        orcid_field0.send_keys("0000-0000-0000-0000")
+
+        name_field1 = driver.find_element(By.NAME, "authors-1-name")
+        name_field1.send_keys("Author1")
+        affiliation_field1 = driver.find_element(By.NAME, "authors-1-affiliation")
+        affiliation_field1.send_keys("Club1")
+
+        # Obtén las rutas absolutas de los archivos
+        file1_path = os.path.abspath("app/modules/dataset/uvl_examples/file1.uvl")
+
+        # Subir el primer archivo
+        dropzone = driver.find_element(By.CLASS_NAME, "dz-hidden-input")
+        dropzone.send_keys(file1_path)
+        wait_for_page_to_load(driver)
+
+        # Check I agree and send form
+        check = driver.find_element(By.ID, "agreeCheckbox")
+        check.send_keys(Keys.SPACE)
+        wait_for_page_to_load(driver)
+
+        upload_btn = driver.find_element(By.ID, "upload_button")
+        upload_btn.send_keys(Keys.RETURN)
+        wait_for_page_to_load(driver)
+        time.sleep(2)  # Force wait time
+
+        driver.get(f'{host}/user/1/datasets')
+
+        johnAfter = len(driver.find_elements(By.CLASS_NAME, "card"))
+
+        assert expectedJohn == johnAfter, f"Se esperaban {expectedJohn} tarjetas, se encontraron {johnAfter}"
+
+        print("Test upload and list user datasets passed!")
+    finally:
+        close_driver(driver)
+
+
 # Call the test function
+test_list_user_datasets()
 test_download_all_uvl()
 test_download_all_dimacs()
 test_download_all_glencoe()
@@ -528,5 +610,7 @@ test_download_uvl()
 test_download_glecone()
 test_download_dimacs()
 test_download_splot()
-test_edit_dataset_draft()
-test_publish_dataset()
+id = test_upload_dataset_draft()
+test_edit_dataset_draft(id)
+test_publish_dataset(id)
+test_upload_and_list_user_dataset()
