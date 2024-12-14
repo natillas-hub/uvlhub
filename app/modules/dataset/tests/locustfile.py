@@ -129,8 +129,18 @@ class DatasetEditBehavior(TaskSet):
         response = self.client.post('/dataset/edit/5', data=form_data)
 
 
+class UserDatasetsBehavior(TaskSet):
+    @task
+    def list_user_datasets(self):
+        response = self.client.get("/user/1/datasets")
+        if response.status_code == 200:
+            print("List user 1 datasets successful.")
+        else:
+            print(f"Error in listing user 1 datasets: {response.status_code}")
+
+
 class DatasetUser(HttpUser):
-    tasks = [DatasetBehavior, DatasetEditBehavior]
+    tasks = [DatasetBehavior, DatasetEditBehavior, UserDatasetsBehavior]
     min_wait = 5000
     max_wait = 9000
     host = get_host_for_locust_testing()
