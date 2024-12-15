@@ -456,6 +456,10 @@
 
             <div style="padding-left: 2rem">
 
+                <button id="upload_button_draft" class="btn btn-primary mt-2">
+                    <i data-feather="upload" class="center-button-icon"></i>
+                    Upload draft</button>
+
                 <label class="form-check">
                     <input id="agreeCheckbox" class="form-check-input" type="checkbox" value="">
                     <span class="form-check-label" style="font-size: 15px">
@@ -504,6 +508,7 @@
                 <script>
                     const checkbox = document.getElementById('agreeCheckbox');
                     const upload_button = document.getElementById('upload_button');
+                    const upload_button_draft = document.getElementById('upload_button_draft');
 
                     checkbox.addEventListener('change', function () {
                         upload_button.disabled = !checkbox.checked;

@@ -1,12 +1,16 @@
 import pytest
-
 from app import db
+from app.modules.conftest import login, logout
 from app.modules.dataset.models import DataSet, DSMetrics, DSMetaData, PublicationType
 from app.modules.featuremodel.models import FeatureModel
 from app.modules.hubfile.models import Hubfile
+from app.modules.featuremodel.models import FMMetaData
+from app.modules.auth.models import User
+from app.modules.profile.models import UserProfile
 from app.modules.dataset.services import DataSetService, features_counter
 import json
 import os
+from flask import url_for
 
 
 @pytest.fixture(scope="module")
@@ -26,7 +30,7 @@ def test_client(test_client):
             description="This is a test dataset description.",
             publication_type=PublicationType.JOURNAL_ARTICLE,
             publication_doi="10.1234/test.doi",
-            dataset_doi="10.1234/dataset.doi",
+            dataset_doi="10.1234/dataset",
             tags="test, dataset, example",
             ds_metrics=ds_metrics_test
         )
@@ -63,6 +67,76 @@ def test_client(test_client):
             feature_model_id=1
         )
         db.session.add_all([hubfile1, hubfile2, hubfile3])
+        db.session.commit()
+
+        user_test = User(email='user@example.com', password='test1234')
+        db.session.add(user_test)
+        db.session.commit()
+
+        profile = UserProfile(user_id=user_test.id, name="Name", surname="Surname")
+        db.session.add(profile)
+        db.session.commit()
+
+        user_test2 = User(email='user2@example.com', password='test1234')
+        db.session.add(user_test2)
+        db.session.commit()
+
+        profile2 = UserProfile(user_id=1, name="Name", surname="Surname")
+        db.session.add(profile2)
+        db.session.commit()
+
+        ds_metrics_test_unsync = DSMetrics(
+            number_of_models="3",
+            number_of_features="10"
+        )
+        ds_meta_data_test_unsync = DSMetaData(
+            title="Unsynchronized Dataset Title",
+            description="This is an unsynchronized dataset description.",
+            publication_type=PublicationType.JOURNAL_ARTICLE,
+            publication_doi="10.5678/unsync.doi",
+            tags="unsync, dataset, example",
+            ds_metrics=ds_metrics_test_unsync
+        )
+        db.session.add_all([ds_metrics_test_unsync, ds_meta_data_test_unsync])
+
+        dataset_test_unsync = DataSet(
+            user_id=2,
+            ds_meta_data_id=2
+        )
+        db.session.add(dataset_test_unsync)
+
+        feature_model_meta_data_unsync = FMMetaData(
+            uvl_filename="unsync_file.uvl",
+            title="Unsynchronized Feature Model",
+            description="This is an unsynchronized feature model description.",
+            publication_type=PublicationType.JOURNAL_ARTICLE,
+            publication_doi="10.5678/unsync.doi",
+            tags="unsync, feature, model",
+            uvl_version="1.0"
+        )
+        db.session.add(feature_model_meta_data_unsync)
+        db.session.commit()
+
+        feature_model_test_unsync = FeatureModel(
+            data_set_id=2,
+            fm_meta_data_id=1
+        )
+        db.session.add(feature_model_test_unsync)
+        db.session.commit()
+
+        hubfile1_unsync = Hubfile(
+            name="unsync_file1.uvl",
+            checksum="xyz123",
+            size=512,
+            feature_model_id=2
+        )
+        hubfile2_unsync = Hubfile(
+            name="unsync_file2.uvl",
+            checksum="uvw456",
+            size=1024,
+            feature_model_id=2
+        )
+        db.session.add_all([hubfile1_unsync, hubfile2_unsync])
         db.session.commit()
 
     yield test_client
@@ -123,7 +197,7 @@ def test_user_datasets_multiple_users(test_client):
     Verifica que no se mezclan datasets entre usuarios diferentes.
     """
     dataset_service = DataSetService()
-    user_id = 2
+    user_id = 3
 
     # No hay datasets creados para user_id=2 en los datos del test_client
     datasets = dataset_service.get_datasets_by_user(user_id)
@@ -504,4 +578,238 @@ OtherSection
 
     # Limpieza
     os.remove(file_path)
-    os.rmdir(temp_dir)
+
+
+# Tests unitarios relaccionados con Staging Area (Issue #7)
+def test_create_dataset_draft_missing_title(test_client):
+
+    login(test_client, "user@example.com", "test1234")
+    # Form sin archivo y sin titulo
+    form_data = {
+        'title': '',
+        'description': 'Test Description',
+        'publication_type': 'JOURNAL_ARTICLE',
+        'publication_doi': '10.1234/test.doi',
+        'dataset_doi': '10.1234/dataset.doi',
+        'tags': 'test, dataset, example'
+    }
+    response = test_client.post(url_for('dataset.create_dataset_draft'), data=form_data)
+    logout(test_client)
+    assert response.status_code == 400
+
+    # Verifica que le falta el titulo
+    assert "This field is required." in response.json["message"]["title"]
+
+
+def test_create_dataset_draft_post_exception(test_client):
+
+    login(test_client, "user@example.com", "test1234")
+
+    # Form sin archivo
+    form_data = {
+        'title': 'Test Dataset',
+        'description': 'Test Description',
+        'publication_type': 'JOURNAL_ARTICLE',
+        'publication_doi': '10.1234/test.doi',
+        'dataset_doi': '10.1234/dataset.doi',
+        'tags': 'test, dataset, example'
+    }
+    response = test_client.post(url_for('dataset.create_dataset_draft'), data=form_data)
+    logout(test_client)
+
+    # Verifica que no se ha subido ningún archivo
+    assert response.status_code == 400
+
+
+def test_get_draft_dataset(test_client):
+
+    login(test_client, "user@example.com", "test1234")
+
+    # Get de un dataset en stagin area
+    response = test_client.get('/dataset/unsynchronized/2/')
+
+    logout(test_client)
+
+    assert response.status_code == 200
+
+
+def test_no_login_edit_draft(test_client):
+
+    login(test_client, "user@example.com", "test1234")
+    logout(test_client)
+    # Get edit page without login
+    response = test_client.get('dataset/edit/2')
+
+    assert response.status_code == 302
+
+
+def test_edit_other_user_draft(test_client):
+    form_data = {
+        'title': 'title',
+        'desc': 'Test Description',
+        'publication_type': PublicationType.JOURNAL_ARTICLE.value,
+        'publication_doi': 'https://prueba.com',
+        'tags': 'test, dataset, example'
+    }
+
+    login(test_client, "user2@example.com", "test1234")
+
+    response = test_client.post('dataset/edit/2', data=form_data)
+
+    logout(test_client)
+
+    assert response.status_code == 400
+
+
+def test_edit_published_dataset(test_client):
+
+    login(test_client, "user2@example.com", "test1234")
+
+    response = test_client.post('dataset/edit/1')
+
+    logout(test_client)
+
+    assert response.status_code == 400
+
+
+def test_edit_draft_empty_title(test_client):
+    form_data = {
+        'title': None,
+        'desc': 'Test Description',
+        'publication_type': PublicationType.JOURNAL_ARTICLE.value,
+        'publication_doi': 'https://prueba.com',
+        'tags': 'test, dataset, example'
+    }
+    login(test_client, "user@example.com", "test1234")
+
+    response = test_client.post('dataset/edit/2', data=form_data)
+    logout(test_client)
+    assert response.request.path == url_for("dataset.edit_dataset", dataset_id=2)
+
+
+def test_edit_draft_empty_description(test_client):
+    form_data = {
+        'title': 'Test Dataset',
+        'desc': '',
+        'publication_type': PublicationType.JOURNAL_ARTICLE.value,
+        'publication_doi': 'http://prueba.com',
+        'tags': 'test, dataset, example'
+    }
+    login(test_client, "user@example.com", "test1234")
+
+    response = test_client.post('dataset/edit/2', data=form_data, follow_redirects=True)
+    logout(test_client)
+    assert response.request.path == url_for("dataset.edit_dataset", dataset_id=2)
+
+
+def test_edit_draft_bad_doi(test_client):
+    form_data = {
+        'title': 'Test Dataset',
+        'desc': 'Test Description',
+        'publication_type': PublicationType.JOURNAL_ARTICLE.value,
+        'publication_doi': 'hola',
+        'tags': 'test, dataset, example'
+    }
+    login(test_client, "user@example.com", "test1234")
+
+    response = test_client.post('dataset/edit/2', data=form_data, follow_redirects=True)
+    logout(test_client)
+    assert response.request.path == url_for("dataset.edit_dataset", dataset_id=2)
+
+
+def test_edit_draft(test_client):
+    form_data = {
+        'title': 'title',
+        'desc': 'Test Description',
+        'publication_type': PublicationType.JOURNAL_ARTICLE.value,
+        'publication_doi': 'https://prueba.com',
+        'tags': 'test, dataset, example'
+    }
+
+    login(test_client, "user@example.com", "test1234")
+
+    response = test_client.post('dataset/edit/2', data=form_data, follow_redirects=True)
+
+    logout(test_client)
+
+    assert response.status_code == 200
+
+
+def test_get_edit_draft(test_client):
+
+    login(test_client, "user@example.com", "test1234")
+
+    response = test_client.get('/dataset/edit/2')
+    logout(test_client)
+    assert response.status_code == 200
+
+
+def test_publish_draft_dataset_no_login(test_client):
+
+    # Publicar sin iniciar sesión
+    response = test_client.get('/dataset/publish/2')
+    assert response.status_code == 302
+
+    response = test_client.get('/doi/10.1234/dataset2', follow_redirects=True)
+    assert response.status_code == 404
+
+
+def test_publish_draft_dataset_other_user(test_client):
+
+    login(test_client, "user2@example.com", "test1234")
+
+    # Publicar un dataset de otro usuario
+    response = test_client.get('/dataset/publish/2')
+    assert response.status_code == 400
+
+    response = test_client.get('/doi/10.1234/dataset2', follow_redirects=True)
+    logout(test_client)
+    assert response.status_code == 404
+
+
+def test_already_published_dataset(test_client):
+
+    login(test_client, "user2@example.com", "test1234")
+
+    # Publicar un dataset que ya está publicado
+    response = test_client.get('/dataset/publish/1')
+    assert response.status_code == 400
+
+    response = test_client.get('/doi/10.1234/dataset1', follow_redirects=True)
+    logout(test_client)
+    assert response.status_code == 404
+
+
+def test_publish_draft_dataset(test_client):
+
+    # Archivo necesario para la publicación del dataset
+    os.makedirs('uploads/user_2/dataset_2', exist_ok=True)
+    content = """features
+    Chat
+        mandatory
+            Connection
+                alternative
+                    "Peer 2 Peer"
+                    Server
+            Messages
+                or
+                    Text
+                    Video
+                    Audio
+        optional
+            "Data Storage"
+            "Media Player"
+"""
+    with open('uploads/user_2/dataset_2/unsync_file.uvl', 'w') as f:
+        f.write(content)
+
+    login(test_client, "user@example.com", "test1234")
+
+    # Publicar un dataset en staging area
+    response = test_client.get('/dataset/publish/2')
+    assert response.status_code == 200
+
+    # Verifica que se ha publicado
+    response = test_client.get('/doi/10.1234/dataset2', follow_redirects=True)
+    logout(test_client)
+    assert response.status_code == 200

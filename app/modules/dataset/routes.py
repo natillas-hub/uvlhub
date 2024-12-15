@@ -23,7 +23,7 @@ from flask import (
 )
 from flask_login import login_required, current_user
 
-from app.modules.dataset.forms import DataSetForm
+from app.modules.dataset.forms import DataSetForm, DataSetFormUpdate
 from app.modules.dataset.models import (
     DSDownloadRecord
 )
@@ -101,6 +101,104 @@ def create_dataset():
         return jsonify({"message": msg}), 200
 
     return render_template("dataset/upload_dataset.html", form=form)
+
+
+@dataset_bp.route("/dataset/edit/<int:dataset_id>", methods=["GET", "POST"])
+@login_required
+def edit_dataset(dataset_id):
+    form = DataSetFormUpdate()
+    dataset = dataset_service.get_or_404(dataset_id)
+
+    if request.method == "GET":
+        form.populate_form_from_dataset(dataset)
+
+    new_form = DataSetFormUpdate(request.form)
+
+    if current_user.id != dataset.user.id or dataset.ds_meta_data.dataset_doi:
+        return jsonify({"message": "You are not allowed to edit this dataset"}), 400
+
+    if request.method == "POST":
+        if new_form.validate_on_submit():
+            dataset_service.update_dsmetadata(
+                dataset.ds_meta_data_id,
+                title=new_form.title.data,
+                description=new_form.desc.data,
+                publication_doi=new_form.publication_doi.data,
+                publication_type=new_form.convert_publication_type(new_form.publication_type.data),
+                tags=new_form.tags.data
+            )
+            return redirect(url_for('dataset.list_dataset'))
+        else:
+            return render_template("dataset/edit_dataset.html", form=new_form, dataset=dataset)
+
+    return render_template("dataset/edit_dataset.html", form=form, dataset=dataset)
+
+
+@dataset_bp.route("/dataset/upload-draft", methods=["GET", "POST"])
+@login_required
+def create_dataset_draft():
+    form = DataSetForm()
+    if request.method == "POST":
+
+        dataset = None
+
+        if not form.validate_on_submit():
+            return jsonify({"message": form.errors}), 400
+
+        try:
+            logger.info("Creating dataset...")
+            dataset = dataset_service.create_from_form(form=form, current_user=current_user)
+            logger.info(f"Created dataset: {dataset}")
+            dataset_service.move_feature_models(dataset)
+        except Exception as exc:
+            logger.exception(f"Exception while create dataset data in local {exc}")
+            return jsonify({"Exception while create dataset data in local: ": str(exc)}), 400
+
+        # Delete temp folder
+        file_path = current_user.temp_folder()
+        if os.path.exists(file_path) and os.path.isdir(file_path):
+            shutil.rmtree(file_path)
+
+        msg = "Everything works!"
+        return jsonify({"message": msg}), 200
+
+    return render_template("dataset/upload_dataset.html", form=form)
+
+
+@dataset_bp.route("/dataset/publish/<int:dataset_id>", methods=["GET"])
+@login_required
+def publish_dataset(dataset_id):
+    dataset = dataset_service.get_or_404(dataset_id)
+    mergedUVL = []
+    if current_user.id != dataset.user.id or dataset.ds_meta_data.dataset_doi:
+        return jsonify({"message": "You are not allowed to publish this dataset"}), 400
+
+    try:
+        logger.info("Parsing the UVL files to JSON...")
+        for feature_model in dataset.feature_models:
+            uvl_filename = feature_model.fm_meta_data.uvl_filename
+            uvl_file_path = 'uploads/user_' + str(current_user.id)
+            uvl_file_path += '/dataset_' + str(dataset.id) + '/' + str(uvl_filename)
+            splitted_filename = uvl_filename.split('.')
+            aux = '{"' + splitted_filename[0] + '": ' + dataset_service.parse_uvl_to_json(uvl_file_path) + '}'
+            aux = json.loads(aux)
+            mergedUVL.append(aux)
+
+        logger.info("All UVL files have been parsed to JSON")
+    except Exception as exc:
+        logger.exception(f"Exception while parsing UVL to JSON in local {exc}")
+        return jsonify({"Exception while parsing UVL to JSON in local : ": str(exc)}), 400
+
+    deposition = fakenodo_service.create_new_deposition(dataset, mergedUVL)
+    dataset_service.update_dsmetadata(
+        dataset.ds_meta_data_id, deposition_id=deposition.id, dataset_doi=f'10.1234/dataset{dataset.id}'
+    )
+
+    return render_template(
+        "dataset/list_datasets.html",
+        datasets=dataset_service.get_synchronized(current_user.id),
+        local_datasets=dataset_service.get_unsynchronized(current_user.id)
+    )
 
 
 @dataset_bp.route("/dataset/list", methods=["GET", "POST"])
