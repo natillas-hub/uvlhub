@@ -24,11 +24,11 @@ jobs:
           DOCKER_CLI_EXPERIMENTAL: enabled
 
       - name: Push Docker image to Docker Hub
-        run: docker push alevarmun1us/natillas-hub${{ github.event.release.tag_name }}
+        run: docker push alevarmun1us/natillas-hub:${{ github.event.release.tag_name }}
 
       - name: Tag and push latest
         run: |
-          docker tag alevarmun1us/natillas-hub${{ github.event.release.tag_name }} alevarmun1us/natillas-hub:latest
+          docker tag alevarmun1us/natillas-hub:${{ github.event.release.tag_name }} alevarmun1us/natillas-hub:latest
           docker push alevarmun1us/natillas-hub:latest
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled
