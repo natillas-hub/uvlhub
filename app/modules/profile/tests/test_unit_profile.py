@@ -48,7 +48,7 @@ def test_edit_answers_page_get(test_client):
 
     response = test_client.get("/profile/edit_answers")
     assert response.status_code == 200, "The answers editing page could not be accessed."
-    assert b"Establish your Security Answers" in response.data, "The expected content is not present on the page"
+    assert b"Answer the security questions" in response.data, "The expected content is not present on the page"
 
     logout(test_client)
 
